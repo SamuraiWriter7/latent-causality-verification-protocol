@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -69,6 +70,20 @@ RECORDS: list[dict[str, Any]] = [
             / "verification-challenge-reproduction.example.yaml"
         ),
         "semantic_validator": "challenge",
+    },
+    {
+        "name": "Unified Latent Causality Lifecycle Record",
+        "schema": (
+            ROOT
+            / "schemas"
+            / "unified-latent-causality-lifecycle.schema.json"
+        ),
+        "example": (
+            ROOT
+            / "examples"
+            / "unified-latent-causality-lifecycle.example.yaml"
+        ),
+        "semantic_validator": "lifecycle",
     },
 ]
 
@@ -150,11 +165,37 @@ def find_duplicates(
     return duplicates
 
 
+def parse_datetime(
+    value: str,
+) -> datetime:
+    """Parse an ISO-8601 datetime string."""
+
+    normalized = value.replace(
+        "Z",
+        "+00:00",
+    )
+
+    return datetime.fromisoformat(
+        normalized
+    )
+
+
+def is_number(
+    value: Any,
+) -> bool:
+    """Return True for int/float values but not bool."""
+
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+    )
+
+
 def validate_schema(
     schema: dict[str, Any],
     example: dict[str, Any],
 ) -> list[str]:
-    """Validate an example against its JSON Schema."""
+    """Validate an example against JSON Schema."""
 
     validator = Draft202012Validator(
         schema,
@@ -204,6 +245,26 @@ def get_manifest_ids(
     ]
 
 
+def validate_evidence_refs(
+    refs: list[str],
+    evidence_ids: set[str],
+    context: str,
+) -> list[str]:
+    """Validate evidence references against a manifest."""
+
+    errors: list[str] = []
+
+    for evidence_ref in refs:
+        if evidence_ref not in evidence_ids:
+            errors.append(
+                f"{context}: evidence reference "
+                f"{evidence_ref!r} not found "
+                "in evidence_manifest"
+            )
+
+    return errors
+
+
 # ---------------------------------------------------------------------------
 # v0.1 — Latent State Observation Record
 # ---------------------------------------------------------------------------
@@ -221,6 +282,10 @@ def validate_observation_record(
         [],
     )
 
+    # ------------------------------------------------------------------
+    # Signal ID integrity
+    # ------------------------------------------------------------------
+
     signal_ids = [
         signal["signal_id"]
         for signal in signals
@@ -237,6 +302,10 @@ def validate_observation_record(
         errors.append(
             f"duplicate signal_id: {signal_id}"
         )
+
+    # ------------------------------------------------------------------
+    # Evidence manifest integrity
+    # ------------------------------------------------------------------
 
     evidence_ids = get_manifest_ids(
         example
@@ -265,16 +334,18 @@ def validate_observation_record(
             "<unknown-signal>",
         )
 
-        for evidence_ref in signal.get(
+        refs = signal.get(
             "evidence_refs",
             [],
-        ):
-            if evidence_ref not in evidence_id_set:
-                errors.append(
-                    f"{signal_id}: evidence reference "
-                    f"{evidence_ref!r} not found "
-                    "in evidence_manifest"
-                )
+        )
+
+        errors.extend(
+            validate_evidence_refs(
+                refs,
+                evidence_id_set,
+                str(signal_id),
+            )
+        )
 
     return errors
 
@@ -338,7 +409,7 @@ def collect_runs(
 def collect_intervention_evidence_refs(
     example: dict[str, Any],
 ) -> list[str]:
-    """Collect every evidence reference used by a v0.2 record."""
+    """Collect all evidence references from a v0.2 record."""
 
     refs: list[str] = []
 
@@ -382,7 +453,7 @@ def collect_intervention_evidence_refs(
 def build_metric_map(
     run: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
-    """Build a metric_id -> measurement mapping."""
+    """Build a metric_id to measurement mapping."""
 
     measurements = run.get(
         "outcome_measurements",
@@ -426,15 +497,15 @@ def validate_intervention_record(
         evidence_ids
     )
 
-    for evidence_ref in collect_intervention_evidence_refs(
-        example
-    ):
-        if evidence_ref not in evidence_id_set:
-            errors.append(
-                f"evidence reference "
-                f"{evidence_ref!r} not found "
-                "in evidence_manifest"
-            )
+    errors.extend(
+        validate_evidence_refs(
+            collect_intervention_evidence_refs(
+                example
+            ),
+            evidence_id_set,
+            "v0.2",
+        )
+    )
 
     # ------------------------------------------------------------------
     # Run ID integrity
@@ -465,7 +536,7 @@ def validate_intervention_record(
     )
 
     # ------------------------------------------------------------------
-    # Control run references
+    # Control run reference integrity
     # ------------------------------------------------------------------
 
     control_design = (
@@ -486,7 +557,7 @@ def validate_intervention_record(
             )
 
     # ------------------------------------------------------------------
-    # Hypothesis and target signal consistency
+    # Hypothesis and target consistency
     # ------------------------------------------------------------------
 
     hypothesis_signal_refs = set(
@@ -517,7 +588,7 @@ def validate_intervention_record(
         )
 
     # ------------------------------------------------------------------
-    # Metric consistency
+    # Metric comparison integrity
     # ------------------------------------------------------------------
 
     comparison = example.get(
@@ -574,19 +645,13 @@ def validate_intervention_record(
 
     baseline_metrics = build_metric_map(
         baseline
-        if isinstance(
-            baseline,
-            dict,
-        )
+        if isinstance(baseline, dict)
         else {}
     )
 
     intervention_metrics = build_metric_map(
         intervention
-        if isinstance(
-            intervention,
-            dict,
-        )
+        if isinstance(intervention, dict)
         else {}
     )
 
@@ -637,22 +702,13 @@ def validate_intervention_record(
             "delta"
         )
 
-        numeric_values = [
-            baseline_value,
-            intervention_value,
-            declared_delta,
-        ]
-
         if all(
-            isinstance(
-                value,
-                (int, float),
-            )
-            and not isinstance(
-                value,
-                bool,
-            )
-            for value in numeric_values
+            is_number(value)
+            for value in [
+                baseline_value,
+                intervention_value,
+                declared_delta,
+            ]
         ):
             expected_delta = (
                 intervention_value
@@ -693,17 +749,12 @@ def validate_intervention_record(
                     f"{expected_direction!r}"
                 )
 
-        # Declared comparison values must match source run values.
+        # Comparison values must match run measurements.
 
         if (
             baseline_measurement is not None
-            and isinstance(
-                baseline_measurement.get("value"),
-                (int, float),
-            )
-            and not isinstance(
-                baseline_measurement.get("value"),
-                bool,
+            and is_number(
+                baseline_measurement.get("value")
             )
             and baseline_value
             != baseline_measurement.get("value")
@@ -716,13 +767,8 @@ def validate_intervention_record(
 
         if (
             intervention_measurement is not None
-            and isinstance(
-                intervention_measurement.get("value"),
-                (int, float),
-            )
-            and not isinstance(
-                intervention_measurement.get("value"),
-                bool,
+            and is_number(
+                intervention_measurement.get("value")
             )
             and intervention_value
             != intervention_measurement.get("value")
@@ -755,22 +801,10 @@ def validate_intervention_record(
     )
 
     if (
-        isinstance(
-            trial_count,
-            int,
-        )
-        and not isinstance(
-            trial_count,
-            bool,
-        )
-        and isinstance(
-            effect_count,
-            int,
-        )
-        and not isinstance(
-            effect_count,
-            bool,
-        )
+        isinstance(trial_count, int)
+        and not isinstance(trial_count, bool)
+        and isinstance(effect_count, int)
+        and not isinstance(effect_count, bool)
     ):
         if effect_count > trial_count:
             errors.append(
@@ -780,14 +814,7 @@ def validate_intervention_record(
 
         if (
             trial_count > 0
-            and isinstance(
-                success_rate,
-                (int, float),
-            )
-            and not isinstance(
-                success_rate,
-                bool,
-            )
+            and is_number(success_rate)
         ):
             expected_rate = (
                 effect_count
@@ -817,19 +844,13 @@ def validate_intervention_record(
     ):
         baseline_input = (
             baseline.get("input_ref")
-            if isinstance(
-                baseline,
-                dict,
-            )
+            if isinstance(baseline, dict)
             else None
         )
 
         intervention_input = (
             intervention.get("input_ref")
-            if isinstance(
-                intervention,
-                dict,
-            )
+            if isinstance(intervention, dict)
             else None
         )
 
@@ -1328,22 +1349,15 @@ def validate_verification_challenge(
     attempt_ids = [
         attempt["attempt_id"]
         for attempt in attempts
-        if isinstance(
-            attempt,
-            dict,
-        )
+        if isinstance(attempt, dict)
         and isinstance(
-            attempt.get(
-                "attempt_id"
-            ),
+            attempt.get("attempt_id"),
             str,
         )
     ]
 
     for attempt_id in sorted(
-        find_duplicates(
-            attempt_ids
-        )
+        find_duplicates(attempt_ids)
     ):
         errors.append(
             f"duplicate attempt_id: {attempt_id}"
@@ -1358,9 +1372,7 @@ def validate_verification_challenge(
     )
 
     for evidence_id in sorted(
-        find_duplicates(
-            evidence_ids
-        )
+        find_duplicates(evidence_ids)
     ):
         errors.append(
             f"duplicate evidence_id: {evidence_id}"
@@ -1392,13 +1404,13 @@ def validate_verification_challenge(
         .get("evidence_refs", [])
     )
 
-    for evidence_ref in evidence_refs:
-        if evidence_ref not in evidence_id_set:
-            errors.append(
-                f"evidence reference "
-                f"{evidence_ref!r} not found "
-                "in evidence_manifest"
-            )
+    errors.extend(
+        validate_evidence_refs(
+            evidence_refs,
+            evidence_id_set,
+            "v0.4",
+        )
+    )
 
     # ------------------------------------------------------------------
     # Reproduction metric arithmetic
@@ -1441,23 +1453,14 @@ def validate_verification_challenge(
             "within_tolerance"
         )
 
-        numeric_values = [
-            original_value,
-            reproduced_value,
-            declared_delta,
-            tolerance,
-        ]
-
         if all(
-            isinstance(
-                value,
-                (int, float),
-            )
-            and not isinstance(
-                value,
-                bool,
-            )
-            for value in numeric_values
+            is_number(value)
+            for value in [
+                original_value,
+                reproduced_value,
+                declared_delta,
+                tolerance,
+            ]
         ):
             expected_delta = (
                 reproduced_value
@@ -1551,10 +1554,7 @@ def validate_verification_challenge(
             [],
         ):
             if (
-                isinstance(
-                    deviation,
-                    dict,
-                )
+                isinstance(deviation, dict)
                 and deviation.get(
                     "deviation_type"
                 )
@@ -1612,17 +1612,17 @@ def validate_verification_challenge(
         status == "unresolved_dispute"
         and disposition
         not in {
-            "no_resolution",
             "pending",
+            "no_resolution",
         }
     ):
         errors.append(
             "unresolved_dispute status must use "
-            "no_resolution or pending disposition"
+            "pending or no_resolution disposition"
         )
 
     # ------------------------------------------------------------------
-    # Outcome consistency
+    # Overall outcome consistency
     # ------------------------------------------------------------------
 
     comparison = record.get(
@@ -1637,10 +1637,7 @@ def validate_verification_challenge(
     completed_attempts = [
         attempt
         for attempt in attempts
-        if isinstance(
-            attempt,
-            dict,
-        )
+        if isinstance(attempt, dict)
         and attempt.get(
             "status"
         )
@@ -1648,14 +1645,743 @@ def validate_verification_challenge(
     ]
 
     if (
-        overall_outcome
-        != "inconclusive"
+        overall_outcome != "inconclusive"
         and not completed_attempts
     ):
         errors.append(
             "non-inconclusive overall_outcome "
             "requires at least one completed "
             "reproduction attempt"
+        )
+
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# v0.5 — Unified Latent Causality Lifecycle Record
+# ---------------------------------------------------------------------------
+
+
+def validate_unified_lifecycle(
+    lifecycle: dict[str, Any],
+) -> list[str]:
+    """Run full-chain and semantic checks for the v0.5 lifecycle."""
+
+    errors: list[str] = []
+
+    observation_path = (
+        ROOT
+        / "examples"
+        / "latent-state-observation-record.example.yaml"
+    )
+
+    intervention_path = (
+        ROOT
+        / "examples"
+        / "causal-intervention-evidence.example.yaml"
+    )
+
+    binding_path = (
+        ROOT
+        / "examples"
+        / "method-model-binding-record.example.yaml"
+    )
+
+    challenge_path = (
+        ROOT
+        / "examples"
+        / "verification-challenge-reproduction.example.yaml"
+    )
+
+    try:
+        observation = load_yaml(
+            observation_path
+        )
+
+        intervention = load_yaml(
+            intervention_path
+        )
+
+        binding = load_yaml(
+            binding_path
+        )
+
+        challenge = load_yaml(
+            challenge_path
+        )
+
+    except RuntimeError as exc:
+        return [
+            str(exc)
+        ]
+
+    # ------------------------------------------------------------------
+    # Record reference integrity
+    # ------------------------------------------------------------------
+
+    record_refs = lifecycle.get(
+        "record_refs",
+        {},
+    )
+
+    expected_refs = {
+        "observation_ref": observation.get(
+            "observation_id"
+        ),
+        "intervention_evidence_ref": intervention.get(
+            "intervention_evidence_id"
+        ),
+        "binding_ref": binding.get(
+            "binding_id"
+        ),
+        "challenge_ref": challenge.get(
+            "challenge_id"
+        ),
+    }
+
+    for field, expected_value in expected_refs.items():
+        actual_value = record_refs.get(
+            field
+        )
+
+        if actual_value != expected_value:
+            errors.append(
+                f"record_refs.{field} does not match "
+                "the source record identifier"
+            )
+
+    # ------------------------------------------------------------------
+    # Full lifecycle chain integrity
+    # ------------------------------------------------------------------
+
+    if (
+        intervention.get(
+            "observation_ref"
+        )
+        != record_refs.get(
+            "observation_ref"
+        )
+    ):
+        errors.append(
+            "v0.2 observation_ref does not match "
+            "the lifecycle observation_ref"
+        )
+
+    binding_refs = binding.get(
+        "subject_refs",
+        {},
+    )
+
+    if (
+        binding_refs.get(
+            "observation_ref"
+        )
+        != record_refs.get(
+            "observation_ref"
+        )
+    ):
+        errors.append(
+            "v0.3 observation_ref does not match "
+            "the lifecycle chain"
+        )
+
+    if (
+        binding_refs.get(
+            "intervention_evidence_ref"
+        )
+        != record_refs.get(
+            "intervention_evidence_ref"
+        )
+    ):
+        errors.append(
+            "v0.3 intervention reference does not "
+            "match the lifecycle chain"
+        )
+
+    challenge_refs = challenge.get(
+        "subject_refs",
+        {},
+    )
+
+    if (
+        challenge_refs.get(
+            "observation_ref"
+        )
+        != record_refs.get(
+            "observation_ref"
+        )
+    ):
+        errors.append(
+            "v0.4 observation_ref does not match "
+            "the lifecycle chain"
+        )
+
+    if (
+        challenge_refs.get(
+            "intervention_evidence_ref"
+        )
+        != record_refs.get(
+            "intervention_evidence_ref"
+        )
+    ):
+        errors.append(
+            "v0.4 intervention reference does not "
+            "match the lifecycle chain"
+        )
+
+    if (
+        challenge_refs.get(
+            "binding_ref"
+        )
+        != record_refs.get(
+            "binding_ref"
+        )
+    ):
+        errors.append(
+            "v0.4 binding_ref does not match "
+            "the lifecycle chain"
+        )
+
+    # ------------------------------------------------------------------
+    # Claim integrity
+    # ------------------------------------------------------------------
+
+    claim_summary = lifecycle.get(
+        "claim_summary",
+        {},
+    )
+
+    hypothesis = intervention.get(
+        "hypothesis",
+        {},
+    )
+
+    if (
+        claim_summary.get(
+            "claim_ref"
+        )
+        != hypothesis.get(
+            "hypothesis_id"
+        )
+    ):
+        errors.append(
+            "claim_summary.claim_ref does not match "
+            "the v0.2 hypothesis_id"
+        )
+
+    if (
+        claim_summary.get(
+            "claim_text"
+        )
+        != hypothesis.get(
+            "target_claim"
+        )
+    ):
+        errors.append(
+            "claim_summary.claim_text does not match "
+            "the v0.2 target_claim"
+        )
+
+    # ------------------------------------------------------------------
+    # Lifecycle state consistency
+    # ------------------------------------------------------------------
+
+    lifecycle_state = lifecycle.get(
+        "lifecycle_state",
+        {},
+    )
+
+    intervention_status = (
+        intervention
+        .get("causal_assessment", {})
+        .get("status")
+    )
+
+    if (
+        lifecycle_state.get(
+            "intervention_status"
+        )
+        != intervention_status
+    ):
+        errors.append(
+            "lifecycle_state.intervention_status "
+            "does not match the v0.2 causal assessment"
+        )
+
+    reproducibility_status = (
+        binding
+        .get("reproducibility", {})
+        .get("status")
+    )
+
+    if (
+        lifecycle_state.get(
+            "binding_status"
+        )
+        != reproducibility_status
+    ):
+        errors.append(
+            "lifecycle_state.binding_status does not "
+            "match the v0.3 reproducibility status"
+        )
+
+    challenge_resolution_status = (
+        challenge
+        .get("resolution", {})
+        .get("status")
+    )
+
+    if (
+        lifecycle_state.get(
+            "challenge_status"
+        )
+        != challenge_resolution_status
+    ):
+        errors.append(
+            "lifecycle_state.challenge_status does "
+            "not match the v0.4 resolution status"
+        )
+
+    reproduction_outcome = (
+        challenge
+        .get("comparison", {})
+        .get("overall_outcome")
+    )
+
+    if (
+        lifecycle_state.get(
+            "reproduction_status"
+        )
+        != reproduction_outcome
+    ):
+        errors.append(
+            "lifecycle_state.reproduction_status "
+            "does not match the v0.4 comparison outcome"
+        )
+
+    resolution_disposition = (
+        challenge
+        .get("resolution", {})
+        .get("disposition")
+    )
+
+    disposition_map = {
+        "pending": "pending",
+        "original_claim_upheld": "claim_upheld",
+        "original_claim_narrowed": "claim_narrowed",
+        "original_claim_revised": "claim_revised",
+        "original_claim_rejected": "claim_rejected",
+        "challenge_rejected": "challenge_rejected",
+        "no_resolution": "no_resolution",
+    }
+
+    expected_resolution_status = disposition_map.get(
+        resolution_disposition
+    )
+
+    if (
+        expected_resolution_status is not None
+        and lifecycle_state.get(
+            "resolution_status"
+        )
+        != expected_resolution_status
+    ):
+        errors.append(
+            "lifecycle_state.resolution_status does "
+            "not match the v0.4 resolution disposition"
+        )
+
+    # ------------------------------------------------------------------
+    # Evidence chain integrity
+    # ------------------------------------------------------------------
+
+    evidence_chain = lifecycle.get(
+        "evidence_chain",
+        [],
+    )
+
+    stages = [
+        entry.get("stage")
+        for entry in evidence_chain
+        if isinstance(
+            entry,
+            dict,
+        )
+    ]
+
+    required_stages = {
+        "observation",
+        "intervention",
+        "binding",
+        "challenge",
+        "reproduction",
+    }
+
+    missing_stages = (
+        required_stages
+        - set(stages)
+    )
+
+    for stage in sorted(
+        missing_stages
+    ):
+        errors.append(
+            f"evidence_chain missing required "
+            f"stage: {stage}"
+        )
+
+    duplicate_stages = find_duplicates(
+        [
+            stage
+            for stage in stages
+            if isinstance(stage, str)
+        ]
+    )
+
+    for stage in sorted(
+        duplicate_stages
+    ):
+        errors.append(
+            f"duplicate evidence_chain stage: {stage}"
+        )
+
+    stage_record_expectations = {
+        "observation": record_refs.get(
+            "observation_ref"
+        ),
+        "intervention": record_refs.get(
+            "intervention_evidence_ref"
+        ),
+        "comparison": record_refs.get(
+            "intervention_evidence_ref"
+        ),
+        "binding": record_refs.get(
+            "binding_ref"
+        ),
+        "challenge": record_refs.get(
+            "challenge_ref"
+        ),
+        "reproduction": record_refs.get(
+            "challenge_ref"
+        ),
+        "resolution": record_refs.get(
+            "challenge_ref"
+        ),
+    }
+
+    for entry in evidence_chain:
+        if not isinstance(
+            entry,
+            dict,
+        ):
+            continue
+
+        stage = entry.get(
+            "stage"
+        )
+
+        expected_record_ref = (
+            stage_record_expectations.get(
+                stage
+            )
+        )
+
+        if (
+            expected_record_ref is not None
+            and entry.get(
+                "record_ref"
+            )
+            != expected_record_ref
+        ):
+            errors.append(
+                f"evidence_chain stage "
+                f"{stage!r} has an unexpected "
+                "record_ref"
+            )
+
+    # ------------------------------------------------------------------
+    # External trace binding integrity
+    # ------------------------------------------------------------------
+
+    external_binding = lifecycle.get(
+        "external_trace_binding",
+        {},
+    )
+
+    trace_binding_status = external_binding.get(
+        "binding_status"
+    )
+
+    trace_refs = external_binding.get(
+        "trace_refs",
+        [],
+    )
+
+    relationships = external_binding.get(
+        "relationships",
+        [],
+    )
+
+    if (
+        trace_binding_status == "bound"
+        and not trace_refs
+    ):
+        errors.append(
+            "bound external trace state requires "
+            "at least one trace_ref"
+        )
+
+    if (
+        trace_binding_status == "bound"
+        and not relationships
+    ):
+        errors.append(
+            "bound external trace state requires "
+            "at least one relationship"
+        )
+
+    declared_trace_refs = set(
+        trace_refs
+    )
+
+    for relationship in relationships:
+        if not isinstance(
+            relationship,
+            dict,
+        ):
+            continue
+
+        trace_ref = relationship.get(
+            "trace_ref"
+        )
+
+        if trace_ref not in declared_trace_refs:
+            errors.append(
+                f"external trace relationship "
+                f"{trace_ref!r} is not declared "
+                "in trace_refs"
+            )
+
+    # ------------------------------------------------------------------
+    # Open issue integrity
+    # ------------------------------------------------------------------
+
+    open_issues = lifecycle.get(
+        "open_issues",
+        [],
+    )
+
+    issue_ids = [
+        issue["issue_id"]
+        for issue in open_issues
+        if isinstance(issue, dict)
+        and isinstance(
+            issue.get("issue_id"),
+            str,
+        )
+    ]
+
+    for issue_id in sorted(
+        find_duplicates(issue_ids)
+    ):
+        errors.append(
+            f"duplicate issue_id: {issue_id}"
+        )
+
+    # ------------------------------------------------------------------
+    # Timestamp consistency
+    # ------------------------------------------------------------------
+
+    created_at = lifecycle.get(
+        "created_at"
+    )
+
+    updated_at = lifecycle.get(
+        "updated_at"
+    )
+
+    if (
+        isinstance(created_at, str)
+        and isinstance(updated_at, str)
+    ):
+        try:
+            created_datetime = parse_datetime(
+                created_at
+            )
+
+            updated_datetime = parse_datetime(
+                updated_at
+            )
+
+            if (
+                updated_datetime
+                < created_datetime
+            ):
+                errors.append(
+                    "updated_at cannot be earlier "
+                    "than created_at"
+                )
+
+        except ValueError:
+            # JSON Schema format validation will report
+            # malformed date-time strings.
+            pass
+
+    # ------------------------------------------------------------------
+    # Closure consistency
+    # ------------------------------------------------------------------
+
+    closure = lifecycle.get(
+        "closure",
+        {},
+    )
+
+    lifecycle_complete = closure.get(
+        "lifecycle_complete"
+    )
+
+    record_status = lifecycle.get(
+        "record_status"
+    )
+
+    closed_at = closure.get(
+        "closed_at"
+    )
+
+    closure_reason = closure.get(
+        "closure_reason"
+    )
+
+    if (
+        lifecycle_complete is True
+        and record_status != "closed"
+    ):
+        errors.append(
+            "lifecycle_complete true requires "
+            "record_status closed"
+        )
+
+    if (
+        record_status == "closed"
+        and lifecycle_complete is not True
+    ):
+        errors.append(
+            "record_status closed requires "
+            "lifecycle_complete true"
+        )
+
+    if (
+        lifecycle_complete is False
+        and closed_at is not None
+    ):
+        errors.append(
+            "incomplete lifecycle must not declare "
+            "closed_at"
+        )
+
+    if (
+        lifecycle_complete is False
+        and closure_reason is not None
+    ):
+        errors.append(
+            "incomplete lifecycle must not declare "
+            "closure_reason"
+        )
+
+    if lifecycle_complete is True:
+        if not isinstance(
+            closure_reason,
+            str,
+        ) or not closure_reason.strip():
+            errors.append(
+                "complete lifecycle requires "
+                "a non-empty closure_reason"
+            )
+
+        if not isinstance(
+            closed_at,
+            str,
+        ):
+            errors.append(
+                "complete lifecycle requires "
+                "closed_at"
+            )
+
+    # ------------------------------------------------------------------
+    # Open issue and closure relationship
+    # ------------------------------------------------------------------
+
+    unresolved_issues = [
+        issue
+        for issue in open_issues
+        if isinstance(issue, dict)
+        and issue.get("status")
+        in {
+            "open",
+            "under_review",
+        }
+    ]
+
+    if (
+        lifecycle_complete is True
+        and unresolved_issues
+    ):
+        errors.append(
+            "complete lifecycle cannot contain "
+            "open or under_review issues"
+        )
+
+    # ------------------------------------------------------------------
+    # Claim support boundary
+    # ------------------------------------------------------------------
+
+    assertions = lifecycle.get(
+        "assertions",
+        {},
+    )
+
+    if (
+        assertions.get(
+            "external_trace_implies_origin_ownership"
+        )
+        is not False
+    ):
+        errors.append(
+            "external trace binding must not imply "
+            "origin ownership"
+        )
+
+    if (
+        assertions.get(
+            "royalty_entitlement_inferred"
+        )
+        is not False
+    ):
+        errors.append(
+            "latent causality lifecycle must not "
+            "infer royalty entitlement"
+        )
+
+    if (
+        assertions.get(
+            "lifecycle_record_replaces_source_evidence"
+        )
+        is not False
+    ):
+        errors.append(
+            "lifecycle record must not replace "
+            "source evidence"
+        )
+
+    if (
+        assertions.get(
+            "universal_causal_claim_made"
+        )
+        is not False
+    ):
+        errors.append(
+            "universal causal claims are outside "
+            "the v0.5 lifecycle boundary"
         )
 
     return errors
@@ -1746,6 +2472,13 @@ def validate_record(
     elif validator_name == "challenge":
         errors.extend(
             validate_verification_challenge(
+                example
+            )
+        )
+
+    elif validator_name == "lifecycle":
+        errors.extend(
+            validate_unified_lifecycle(
                 example
             )
         )
