@@ -2,6 +2,72 @@
 
 All notable changes to the Latent Causality Verification Protocol will be documented in this file.
 
+## [v0.4.0-candidate] - 2026-07-09
+
+### Added
+
+- Verification Challenge and Reproduction Record
+- challenge subject binding
+- target claim reference
+- challenger identity declaration
+- relationship-to-original-work declaration
+- conflict disclosure
+- challenge type registry
+- challenge grounds
+- requested test declarations
+- reproduction plan
+- reproduction type classification
+- independence level declaration
+- comparison target declaration
+- reproduction deviation records
+- reproduction attempt records
+- binding snapshot references
+- original versus reproduced metric comparison
+- tolerance evaluation
+- reproduction attempt outcome classification
+- overall comparison outcome
+- effect direction consistency
+- magnitude consistency
+- agreement scope
+- disagreement scope
+- uncertainty declaration
+- challenge resolution status
+- challenge disposition
+- revised claim scope
+- superseding record reference
+- challenge evidence manifest
+- cross-version lifecycle reference validation
+- reproduction metric arithmetic validation
+- tolerance consistency validation
+- completed attempt integrity validation
+- exact replay deviation validation
+- resolution state consistency validation
+
+### Boundary
+
+v0.4 does not assume that:
+
+- a failed reproduction automatically falsifies the original claim,
+- a successful reproduction establishes universal causality,
+- partial reproduction is equivalent to failure,
+- disagreement must always be resolved,
+- independent reproduction guarantees methodological independence.
+
+### Core Principle
+
+> A verifiable claim must also be challengeable.
+
+### Lifecycle
+
+```text
+Observe
+→ Intervene
+→ Compare
+→ Bind
+→ Challenge
+→ Reproduce
+→ Resolve or Remain Disputed
+
 ## [v0.3.0-candidate] - 2026-07-09
 
 ### Added
