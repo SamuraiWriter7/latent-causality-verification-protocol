@@ -2,6 +2,79 @@
 
 All notable changes to the Latent Causality Verification Protocol will be documented in this file.
 
+## [v0.3.0-candidate] - 2026-07-09
+
+### Added
+
+- Method and Model Binding Record
+- observation record reference binding
+- intervention evidence reference binding
+- model family binding
+- model identifier binding
+- model version binding
+- checkpoint reference and digest
+- tokenizer reference and digest
+- architecture reference
+- model access mode declaration
+- observation method binding
+- intervention method binding
+- method version binding
+- code artifact binding
+- configuration artifact binding
+- parameter snapshot reference
+- threshold policy binding
+- execution environment binding
+- framework and framework version binding
+- numerical precision declaration
+- hardware class declaration
+- environment artifact digest
+- optional container binding
+- random seed policy
+- task family binding
+- input set binding
+- prompt template binding
+- layer indexing convention
+- inspection layer binding
+- token selection policy
+- component scope binding
+- metric specification binding
+- reproducibility status
+- replay requirements
+- missing binding declaration
+- cross-record identity validation
+- model consistency validation
+- method consistency validation
+- intervention operation binding validation
+- experiment scope consistency validation
+
+### Boundary
+
+v0.3 binds evidence to declared conditions.
+
+It does not establish:
+
+- universal portability,
+- cross-model equivalence,
+- cross-checkpoint equivalence,
+- independent reproduction,
+- successful replication,
+- complete mechanistic explanation.
+
+### Core Principle
+
+> A causal result without binding is an anecdote.
+> A causal result with binding becomes reproducible evidence.
+
+### Lifecycle
+
+```text
+Observe
+→ Hypothesize
+→ Intervene
+→ Compare
+→ Assess
+→ Bind
+
 ## [v0.2.0-candidate] - 2026-07-09
 
 ### Added
