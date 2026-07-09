@@ -382,3 +382,151 @@ Do not claim causation before testing it.
 v0.1 begins with observation.
 
 Causal verification comes next.
+
+## v0.2 — Causal Intervention Evidence
+
+v0.2 introduces the Causal Intervention Evidence Record.
+
+The record connects a previous latent-state observation to:
+
+- a falsifiable hypothesis,
+- a declared intervention target,
+- a reproducible intervention operation,
+- a baseline run,
+- an intervention run,
+- outcome measurements,
+- metric differences,
+- replication statistics,
+- bounded causal assessment,
+- evidence references,
+- review status.
+
+The core lifecycle is:
+
+```text
+Observation
+    ↓
+Hypothesis
+    ↓
+Intervention
+    ↓
+Baseline / Intervention Comparison
+    ↓
+Effect Measurement
+    ↓
+Replication Summary
+    ↓
+Bounded Causal Assessment
+Core Boundary
+
+v0.2 permits a bounded causal assessment.
+
+It does not permit the record to claim:
+
+universal causality,
+complete mechanism identification,
+exhaustive explanation of model behavior,
+historical origin attribution,
+contribution ownership,
+royalty entitlement.
+
+The central principle is:
+
+Intervention can support a causal claim.
+It does not prove a universal mechanism.
+
+Relationship to v0.1
+
+v0.1 asks:
+
+What latent signal was observed?
+
+v0.2 asks:
+
+What changed when the declared latent target was deliberately changed?
+
+The protocol therefore separates:
+
+Observation Evidence
+        ≠
+Causal Intervention Evidence
+
+and connects them explicitly through:
+
+observation_ref: lso-example-001
+Supported Intervention Classes
+
+The v0.2 schema supports method-neutral intervention categories:
+
+ablation,
+suppression,
+activation,
+injection,
+swap,
+replacement,
+scaling,
+patching,
+other.
+
+Specific mathematical implementations remain outside the normative core of the protocol.
+
+Evidence Chain
+Observed Signal
+      ↓
+Hypothesis
+      ↓
+Intervention Target
+      ↓
+Operation
+      ↓
+Baseline Run
+      ↓
+Intervention Run
+      ↓
+Metric Delta
+      ↓
+Replication Summary
+      ↓
+Causal Assessment
+      ↓
+Review
+Epistemic Boundary
+
+The following assertions are mandatory:
+
+assertions:
+  intervention_performed: true
+  baseline_comparison_performed: true
+  causal_effect_assessed: true
+  universal_causal_claim_made: false
+  mechanism_exhaustively_identified: false
+
+A v0.2 record may support a causal contribution claim only within its explicitly declared scope.
+
+The assessment must remain bound to the relevant:
+
+model,
+checkpoint,
+task family,
+intervention operation,
+layer scope,
+token scope,
+component scope,
+measurement procedure.
+Next Layer
+
+v0.3 will strengthen Method and Model Binding.
+
+The protocol will move from:
+
+We observed an effect
+
+toward:
+
+We observed this effect
+on this model version
+at this checkpoint
+using this method version
+with this configuration
+under this threshold policy
+within this inspection scope.
