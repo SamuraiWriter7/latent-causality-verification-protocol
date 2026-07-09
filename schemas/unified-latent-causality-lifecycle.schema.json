@@ -1,0 +1,620 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Unified Latent Causality Lifecycle Record",
+  "description": "An index-oriented lifecycle record that binds observation, intervention evidence, method/model binding, challenge, reproduction, resolution, uncertainty, and external trace relationships.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_status",
+    "lifecycle_id",
+    "created_at",
+    "updated_at",
+    "record_refs",
+    "lifecycle_state",
+    "claim_summary",
+    "evidence_chain",
+    "external_trace_binding",
+    "open_issues",
+    "closure",
+    "assertions",
+    "review"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.5"
+    },
+    "record_type": {
+      "type": "string",
+      "const": "unified_latent_causality_lifecycle"
+    },
+    "record_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "under_review",
+        "closed",
+        "superseded"
+      ]
+    },
+    "lifecycle_id": {
+      "type": "string",
+      "pattern": "^ulcl-[A-Za-z0-9._:-]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "record_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ref",
+        "intervention_evidence_ref",
+        "binding_ref",
+        "challenge_ref"
+      ],
+      "properties": {
+        "observation_ref": {
+          "type": "string",
+          "pattern": "^lso-[A-Za-z0-9._:-]+$"
+        },
+        "intervention_evidence_ref": {
+          "type": "string",
+          "pattern": "^cie-[A-Za-z0-9._:-]+$"
+        },
+        "binding_ref": {
+          "type": "string",
+          "pattern": "^mmb-[A-Za-z0-9._:-]+$"
+        },
+        "challenge_ref": {
+          "type": "string",
+          "pattern": "^vcr-[A-Za-z0-9._:-]+$"
+        }
+      }
+    },
+    "lifecycle_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_status",
+        "intervention_status",
+        "binding_status",
+        "challenge_status",
+        "reproduction_status",
+        "resolution_status",
+        "overall_status"
+      ],
+      "properties": {
+        "observation_status": {
+          "type": "string",
+          "enum": [
+            "recorded",
+            "reviewed",
+            "disputed",
+            "rejected"
+          ]
+        },
+        "intervention_status": {
+          "type": "string",
+          "enum": [
+            "recorded",
+            "supported",
+            "partially_supported",
+            "inconclusive",
+            "contradicted"
+          ]
+        },
+        "binding_status": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "unverifiable"
+          ]
+        },
+        "challenge_status": {
+          "type": "string",
+          "enum": [
+            "none",
+            "open",
+            "resolved",
+            "unresolved_dispute",
+            "withdrawn"
+          ]
+        },
+        "reproduction_status": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "in_progress",
+            "confirmed",
+            "substantially_confirmed",
+            "partially_reproduced",
+            "not_reproduced",
+            "contradicted",
+            "inconclusive"
+          ]
+        },
+        "resolution_status": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "pending",
+            "claim_upheld",
+            "claim_narrowed",
+            "claim_revised",
+            "claim_rejected",
+            "challenge_rejected",
+            "no_resolution"
+          ]
+        },
+        "overall_status": {
+          "type": "string",
+          "enum": [
+            "observational",
+            "causal_evidence_available",
+            "bound",
+            "under_challenge",
+            "partially_reproduced",
+            "reproduced",
+            "disputed",
+            "closed"
+          ]
+        }
+      }
+    },
+    "claim_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_ref",
+        "claim_text",
+        "causal_scope",
+        "support_status",
+        "confidence",
+        "scope_limitations"
+      ],
+      "properties": {
+        "claim_ref": {
+          "type": "string",
+          "pattern": "^hyp-[A-Za-z0-9._:-]+$"
+        },
+        "claim_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "causal_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "support_status": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partially_supported",
+            "inconclusive",
+            "contradicted",
+            "revised",
+            "rejected"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scope_limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidence_chain": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "$ref": "#/$defs/evidence_chain_entry"
+      }
+    },
+    "external_trace_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_status",
+        "trace_protocol_ref",
+        "trace_refs",
+        "relationships",
+        "binding_note"
+      ],
+      "properties": {
+        "binding_status": {
+          "type": "string",
+          "enum": [
+            "unbound",
+            "partial",
+            "bound",
+            "disputed"
+          ]
+        },
+        "trace_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trace_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trace_relationship"
+          }
+        },
+        "binding_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "open_issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/open_issue"
+      }
+    },
+    "closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lifecycle_complete",
+        "closure_reason",
+        "closed_at",
+        "superseding_lifecycle_ref"
+      ],
+      "properties": {
+        "lifecycle_complete": {
+          "type": "boolean"
+        },
+        "closure_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "superseding_lifecycle_ref": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^ulcl-[A-Za-z0-9._:-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "assertions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_chain_verified",
+        "uncertainty_preserved",
+        "disputes_preserved",
+        "raw_internal_state_required",
+        "lifecycle_record_replaces_source_evidence",
+        "external_trace_implies_origin_ownership",
+        "royalty_entitlement_inferred",
+        "universal_causal_claim_made"
+      ],
+      "properties": {
+        "record_chain_verified": {
+          "type": "boolean",
+          "const": true
+        },
+        "uncertainty_preserved": {
+          "type": "boolean",
+          "const": true
+        },
+        "disputes_preserved": {
+          "type": "boolean",
+          "const": true
+        },
+        "raw_internal_state_required": {
+          "type": "boolean",
+          "const": false
+        },
+        "lifecycle_record_replaces_source_evidence": {
+          "type": "boolean",
+          "const": false
+        },
+        "external_trace_implies_origin_ownership": {
+          "type": "boolean",
+          "const": false
+        },
+        "royalty_entitlement_inferred": {
+          "type": "boolean",
+          "const": false
+        },
+        "universal_causal_claim_made": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_reviewed",
+            "pending",
+            "completed",
+            "disputed"
+          ]
+        },
+        "reviewer_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidence_chain_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "record_ref",
+        "status",
+        "evidence_refs",
+        "summary"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "enum": [
+            "observation",
+            "intervention",
+            "comparison",
+            "binding",
+            "challenge",
+            "reproduction",
+            "resolution",
+            "external_trace"
+          ]
+        },
+        "record_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "recorded",
+            "supported",
+            "partially_supported",
+            "bound",
+            "challenged",
+            "reproduced",
+            "partially_reproduced",
+            "not_reproduced",
+            "contradicted",
+            "inconclusive",
+            "resolved",
+            "unresolved",
+            "linked"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "trace_relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_ref",
+        "relation_type",
+        "scope"
+      ],
+      "properties": {
+        "trace_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation_type": {
+          "type": "string",
+          "enum": [
+            "contextualizes",
+            "supports",
+            "challenges",
+            "derived_from",
+            "supersedes",
+            "references",
+            "other"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "open_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issue_id",
+        "category",
+        "severity",
+        "status",
+        "summary",
+        "related_refs"
+      ],
+      "properties": {
+        "issue_id": {
+          "type": "string",
+          "pattern": "^issue-[A-Za-z0-9._:-]+$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "method",
+            "model",
+            "threshold",
+            "scope",
+            "metric",
+            "replication",
+            "evidence",
+            "trace_binding",
+            "other"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "under_review",
+            "resolved",
+            "deferred"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "related_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "external_trace_binding": {
+            "properties": {
+              "binding_status": {
+                "const": "bound"
+              }
+            },
+            "required": [
+              "binding_status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "external_trace_binding": {
+            "properties": {
+              "trace_refs": {
+                "minItems": 1
+              },
+              "relationships": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "closure": {
+            "properties": {
+              "lifecycle_complete": {
+                "const": true
+              }
+            },
+            "required": [
+              "lifecycle_complete"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "closure": {
+            "properties": {
+              "closure_reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "closed_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
