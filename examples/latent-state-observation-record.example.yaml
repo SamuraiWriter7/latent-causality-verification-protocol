@@ -1,0 +1,127 @@
+schema_version: "0.1"
+
+record_type: latent_state_observation
+
+record_status: draft
+
+observation_id: lso-example-001
+
+created_at: "2026-07-09T00:00:00Z"
+
+model_context:
+  provider: example-research-lab
+  model_id: example-model-alpha
+  model_version: "1.0"
+  checkpoint_ref: checkpoint-example-001
+  runtime_ref: runtime-session-042
+  inference_ref: inference-example-20260709-001
+
+observer:
+  observer_id: audit-system-alpha
+  observer_type: automated_system
+  tool_ref: latent-reader-v0.3
+
+observation_method:
+  name: example_latent_reader
+  version: "0.3"
+  method_family: representation_readout
+  configuration_ref: config/latent-reader-default.yaml
+  threshold_policy_ref: policies/signal-threshold-v1.yaml
+
+inspection_scope:
+  layer_refs:
+    - 18
+    - 19
+    - 20
+
+  token_refs:
+    - prompt_end
+    - generation:0
+
+  component_refs:
+    - residual_stream
+
+  context_ref: context-example-001
+
+observed_signals:
+  - signal_id: signal-plan-a
+    label: candidate_plan_a
+    signal_type: concept
+    score: 7.82
+    confidence: 0.81
+    rank: 1
+    direction: activation
+    epistemic_status: interpreted
+    interpretation: >
+      The method produced a strong readout associated with the
+      candidate_plan_a label within the inspected scope.
+    evidence_refs:
+      - evidence-readout-001
+
+  - signal_id: signal-risk-check
+    label: risk_check
+    signal_type: pattern
+    score: 5.14
+    confidence: 0.67
+    rank: 2
+    direction: activation
+    epistemic_status: tentative
+    interpretation: >
+      A secondary signal may correspond to an internal risk-evaluation
+      pattern, but the interpretation remains method-dependent.
+    evidence_refs:
+      - evidence-readout-002
+      - evidence-statistics-001
+
+interpretation_boundary:
+  summary: >
+    The observation method detected two candidate latent signals within
+    the specified inspection scope. This record does not establish that
+    either signal caused the model's downstream output.
+
+  method_dependence_note: >
+    Signal labels and scores depend on the observation method,
+    configuration, thresholds, model version, and inspection scope.
+
+  limitations:
+    - The observation covers only selected layers and token positions.
+    - Signal labels may not correspond one-to-one with model concepts.
+    - The record does not include causal intervention evidence.
+    - The observation has not been independently reproduced.
+
+evidence_manifest:
+  - evidence_id: evidence-readout-001
+    evidence_type: ranked_readout
+    uri: evidence/readout-001.json
+    digest: "sha256:example001"
+    description: Ranked latent-state readout for candidate_plan_a.
+
+  - evidence_id: evidence-readout-002
+    evidence_type: ranked_readout
+    uri: evidence/readout-002.json
+    digest: "sha256:example002"
+    description: Ranked latent-state readout for risk_check.
+
+  - evidence_id: evidence-statistics-001
+    evidence_type: statistical_result
+    uri: evidence/statistics-001.json
+    digest: "sha256:example003"
+    description: Supporting statistical summary for the secondary signal.
+
+storage_policy:
+  raw_activations_stored: false
+  derived_representations_stored: true
+  retention_class: time_limited
+  access_scope: auditor_only
+  policy_ref: policies/internal-state-retention-v1.yaml
+
+assertions:
+  causal_claim_made: false
+  intervention_performed: false
+  downstream_effect_claimed: false
+
+review:
+  status: pending
+  reviewer_ref: null
+  review_note: >
+    Awaiting independent methodological review.
