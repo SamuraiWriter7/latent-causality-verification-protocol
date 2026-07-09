@@ -1,0 +1,552 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Method and Model Binding Record",
+  "description": "Binds latent-state observation and causal intervention evidence to model identity, method versions, configurations, execution environment, experiment scope, and reproducibility requirements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_status",
+    "binding_id",
+    "created_at",
+    "subject_refs",
+    "model_binding",
+    "method_bindings",
+    "execution_environment",
+    "experiment_binding",
+    "reproducibility",
+    "assertions",
+    "review"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.3"
+    },
+    "record_type": {
+      "type": "string",
+      "const": "method_model_binding"
+    },
+    "record_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reviewed",
+        "validated",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "binding_id": {
+      "type": "string",
+      "pattern": "^mmb-[A-Za-z0-9._:-]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "subject_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ref",
+        "intervention_evidence_ref"
+      ],
+      "properties": {
+        "observation_ref": {
+          "type": "string",
+          "pattern": "^lso-[A-Za-z0-9._:-]+$"
+        },
+        "intervention_evidence_ref": {
+          "type": "string",
+          "pattern": "^cie-[A-Za-z0-9._:-]+$"
+        }
+      }
+    },
+    "model_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "model_family",
+        "model_id",
+        "model_version",
+        "checkpoint_ref",
+        "checkpoint_digest",
+        "tokenizer_ref",
+        "tokenizer_digest",
+        "architecture_ref",
+        "access_mode"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "tokenizer_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tokenizer_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "architecture_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "access_mode": {
+          "type": "string",
+          "enum": [
+            "full_weights",
+            "internal_activations",
+            "controlled_internal_access",
+            "remote_instrumented_access",
+            "other"
+          ]
+        }
+      }
+    },
+    "method_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_method",
+        "intervention_method"
+      ],
+      "properties": {
+        "observation_method": {
+          "$ref": "#/$defs/method_binding"
+        },
+        "intervention_method": {
+          "$ref": "#/$defs/method_binding"
+        }
+      }
+    },
+    "execution_environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_id",
+        "framework",
+        "framework_version",
+        "precision",
+        "hardware_class",
+        "environment_ref",
+        "environment_digest",
+        "random_seed_policy"
+      ],
+      "properties": {
+        "runtime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "framework": {
+          "type": "string",
+          "minLength": 1
+        },
+        "framework_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "precision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "container_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "container_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256_digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "random_seed_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_type"
+          ],
+          "properties": {
+            "policy_type": {
+              "type": "string",
+              "enum": [
+                "fixed",
+                "declared_series",
+                "randomized_recorded",
+                "externally_managed"
+              ]
+            },
+            "seed_refs": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "experiment_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_family_ref",
+        "input_set_ref",
+        "input_set_digest",
+        "prompt_template_ref",
+        "prompt_template_digest",
+        "layer_indexing",
+        "layer_refs",
+        "token_selection_policy_ref",
+        "component_refs",
+        "metric_spec_ref",
+        "metric_spec_digest"
+      ],
+      "properties": {
+        "task_family_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_set_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_set_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "prompt_template_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt_template_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "layer_indexing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "convention"
+          ],
+          "properties": {
+            "convention": {
+              "type": "string",
+              "enum": [
+                "absolute_layer_index",
+                "normalized_percentage",
+                "named_stage",
+                "custom"
+              ]
+            },
+            "mapping_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "layer_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "string",
+                "minLength": 1
+              }
+            ]
+          }
+        },
+        "token_selection_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "metric_spec_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metric_spec_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        }
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "replay_requirements",
+        "missing_bindings",
+        "notes"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "unverifiable"
+          ]
+        },
+        "replay_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "missing_bindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "missing_bindings": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "assertions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_identity_bound",
+        "method_identity_bound",
+        "configuration_bound",
+        "environment_bound",
+        "universal_portability_claim_made",
+        "cross_model_equivalence_claim_made"
+      ],
+      "properties": {
+        "model_identity_bound": {
+          "type": "boolean",
+          "const": true
+        },
+        "method_identity_bound": {
+          "type": "boolean",
+          "const": true
+        },
+        "configuration_bound": {
+          "type": "boolean",
+          "const": true
+        },
+        "environment_bound": {
+          "type": "boolean",
+          "const": true
+        },
+        "universal_portability_claim_made": {
+          "type": "boolean",
+          "const": false
+        },
+        "cross_model_equivalence_claim_made": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_reviewed",
+            "pending",
+            "completed",
+            "disputed"
+          ]
+        },
+        "reviewer_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256_digest": {
+      "type": "string",
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+    },
+    "method_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_id",
+        "name",
+        "version",
+        "method_family",
+        "code_ref",
+        "code_digest",
+        "configuration_ref",
+        "configuration_digest",
+        "parameter_snapshot_ref",
+        "deterministic"
+      ],
+      "properties": {
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "$ref": "#/$defs/sha256_digest"
+        },
+        "parameter_snapshot_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threshold_policy": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "policy_ref",
+                "policy_digest"
+              ],
+              "properties": {
+                "policy_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "policy_digest": {
+                  "$ref": "#/$defs/sha256_digest"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deterministic": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
