@@ -1,0 +1,198 @@
+schema_version: "0.4"
+
+record_type: verification_challenge_reproduction
+
+record_status: under_review
+
+challenge_id: vcr-example-001
+
+created_at: "2026-07-09T01:35:00Z"
+
+subject_refs:
+  observation_ref: lso-example-001
+  intervention_evidence_ref: cie-example-001
+  binding_ref: mmb-example-001
+  target_claim_ref: hyp-plan-a-001
+
+challenger:
+  challenger_id: independent-audit-team-beta
+  challenger_type: organization
+  relationship_to_original_work: independent_team
+  conflict_disclosure: null
+
+challenge:
+  challenge_type: threshold_sensitivity
+
+  summary: >
+    The reported intervention effect may depend on the observation
+    threshold and selected layer scope.
+
+  grounds:
+    - The original record binds the result to a single threshold policy.
+    - The selected layer range may not establish robustness across nearby scopes.
+
+  requested_tests:
+    - Repeat the intervention under adjacent threshold settings.
+    - Repeat the intervention on a neighboring layer scope.
+
+reproduction_plan:
+  reproduction_type: scoped_replication
+
+  independence_level: independent_team
+
+  comparison_target: intervention_effect
+
+  deviations:
+    - field_path: method_bindings.observation_method.threshold_policy
+      deviation_type: intentional
+
+      original_value_ref: policies/signal-threshold-v1.yaml
+
+      reproduction_value_ref: >
+        policies/signal-threshold-sensitivity-set-v1.yaml
+
+      rationale: >
+        Test whether the observed causal effect remains directionally
+        stable under adjacent thresholds.
+
+  plan_ref: plans/scoped-replication-001.yaml
+
+reproduction_attempts:
+  - attempt_id: attempt-reproduction-001
+
+    status: completed
+
+    operator_ref: operator-independent-beta-01
+
+    binding_snapshot_ref: >
+      bindings/reproduction-binding-001.yaml
+
+    input_ref: datasets/plan-selection-example-v1.jsonl
+
+    output_ref: outputs/reproduction-001.json
+
+    primary_metric:
+      metric_id: metric-plan-b-probability
+      original_value: 0.55
+      reproduced_value: 0.48
+      delta_from_original: -0.07
+      tolerance: 0.10
+      within_tolerance: true
+
+    outcome: supports
+
+    evidence_refs:
+      - evidence-reproduction-output-001
+      - evidence-reproduction-metric-001
+
+  - attempt_id: attempt-reproduction-002
+
+    status: completed
+
+    operator_ref: operator-independent-beta-02
+
+    binding_snapshot_ref: >
+      bindings/reproduction-binding-002.yaml
+
+    input_ref: datasets/plan-selection-example-v1.jsonl
+
+    output_ref: outputs/reproduction-002.json
+
+    primary_metric:
+      metric_id: metric-plan-b-probability
+      original_value: 0.55
+      reproduced_value: 0.31
+      delta_from_original: -0.24
+      tolerance: 0.10
+      within_tolerance: false
+
+    outcome: partially_supports
+
+    evidence_refs:
+      - evidence-reproduction-output-002
+      - evidence-reproduction-metric-002
+
+comparison:
+  overall_outcome: partially_reproduced
+
+  effect_direction_consistency: consistent
+
+  magnitude_consistency: mixed
+
+  agreement_scope:
+    - Both completed attempts preserved the intervention effect direction.
+
+  disagreement_scope:
+    - One attempt produced an effect magnitude outside the declared tolerance.
+
+  uncertainties:
+    - >
+      The threshold sensitivity set has not yet been tested across
+      additional model checkpoints.
+    - >
+      The reproduction does not establish cross-model portability.
+
+  evidence_refs:
+    - evidence-comparison-001
+
+resolution:
+  status: open
+
+  disposition: pending
+
+  rationale: >
+    The effect direction was reproduced, but magnitude robustness
+    remains unresolved.
+
+  revised_scope: null
+
+  superseding_record_ref: null
+
+evidence_manifest:
+  - evidence_id: evidence-reproduction-output-001
+    evidence_type: run_output
+    uri: evidence/reproduction-output-001.json
+    digest: "sha256:example401"
+    description: First reproduction output.
+
+  - evidence_id: evidence-reproduction-metric-001
+    evidence_type: metric_result
+    uri: evidence/reproduction-metric-001.json
+    digest: "sha256:example402"
+    description: First reproduction metric result.
+
+  - evidence_id: evidence-reproduction-output-002
+    evidence_type: run_output
+    uri: evidence/reproduction-output-002.json
+    digest: "sha256:example403"
+    description: Second reproduction output.
+
+  - evidence_id: evidence-reproduction-metric-002
+    evidence_type: metric_result
+    uri: evidence/reproduction-metric-002.json
+    digest: "sha256:example404"
+    description: Second reproduction metric result.
+
+  - evidence_id: evidence-comparison-001
+    evidence_type: comparison_result
+    uri: evidence/comparison-001.json
+    digest: "sha256:example405"
+    description: >
+      Comparison of original and reproduced effect measurements.
+
+assertions:
+  challenge_recorded: true
+  reproduction_attempts_recorded: true
+  comparison_scope_declared: true
+
+  original_claim_automatically_invalidated: false
+
+  universal_replication_claim_made: false
+
+review:
+  status: pending
+
+  reviewer_ref: null
+
+  review_note: >
+    Awaiting joint review of threshold sensitivity and magnitude tolerance.
