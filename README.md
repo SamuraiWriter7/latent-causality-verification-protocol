@@ -530,3 +530,137 @@ using this method version
 with this configuration
 under this threshold policy
 within this inspection scope.
+
+## v0.3 — Method and Model Binding
+
+v0.3 introduces the Method and Model Binding Record.
+
+The record binds observation and intervention evidence to:
+
+- model family,
+- model identifier,
+- model version,
+- checkpoint,
+- checkpoint digest,
+- tokenizer,
+- tokenizer digest,
+- architecture reference,
+- observation method,
+- intervention method,
+- method versions,
+- code snapshots,
+- configuration snapshots,
+- threshold policies,
+- execution environment,
+- precision,
+- hardware class,
+- seed policy,
+- input set,
+- prompt template,
+- inspection scope,
+- metric specification,
+- reproducibility status.
+
+### Core Principle
+
+> A causal result without binding is an anecdote.
+> A causal result with binding becomes reproducible evidence.
+
+### Lifecycle Position
+
+```text
+Observe
+    ↓
+Intervene
+    ↓
+Compare
+    ↓
+Assess
+    ↓
+Bind
+    ↓
+Reproduce
+Binding Structure
+Causal Evidence
+       │
+       ▼
+Model Binding
+       +
+Method Binding
+       +
+Configuration Binding
+       +
+Environment Binding
+       +
+Experiment Binding
+       │
+       ▼
+Reproducibility Status
+Epistemic Boundary
+
+A result bound to one model and method configuration must not automatically be generalized to:
+
+another model version,
+another checkpoint,
+another tokenizer,
+another method version,
+another threshold policy,
+another layer range,
+another task family,
+another execution environment.
+
+The following assertions are mandatory:
+
+assertions:
+  model_identity_bound: true
+  method_identity_bound: true
+  configuration_bound: true
+  environment_bound: true
+
+  universal_portability_claim_made: false
+  cross_model_equivalence_claim_made: false
+Reproducibility Status
+
+A binding record declares one of three states:
+
+complete
+partial
+unverifiable
+
+A complete record must declare no missing bindings.
+
+A complete binding record does not guarantee that every independent reproduction will produce the same result.
+
+It means that the protocol record identifies the artifacts and conditions required for an authorized replay attempt.
+
+Relationship to Previous Versions
+
+v0.1 asks:
+
+What latent signal was observed?
+
+v0.2 asks:
+
+What changed when the target latent state was changed?
+
+v0.3 asks:
+
+Under exactly what model, method, configuration, environment, and experiment scope was that result obtained?
+
+Next Layer
+
+v0.4 will introduce:
+
+Verification Challenge and Reproduction
+
+The protocol will move from:
+
+This result is bound and replayable.
+
+to:
+
+This result can be challenged,
+independently tested,
+confirmed,
+partially reproduced,
+or disputed.
