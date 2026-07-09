@@ -56,6 +56,20 @@ RECORDS: list[dict[str, Any]] = [
         ),
         "semantic_validator": "binding",
     },
+    {
+        "name": "Verification Challenge and Reproduction Record",
+        "schema": (
+            ROOT
+            / "schemas"
+            / "verification-challenge-reproduction.schema.json"
+        ),
+        "example": (
+            ROOT
+            / "examples"
+            / "verification-challenge-reproduction.example.yaml"
+        ),
+        "semantic_validator": "challenge",
+    },
 ]
 
 
@@ -140,7 +154,7 @@ def validate_schema(
     schema: dict[str, Any],
     example: dict[str, Any],
 ) -> list[str]:
-    """Validate an example against JSON Schema."""
+    """Validate an example against its JSON Schema."""
 
     validator = Draft202012Validator(
         schema,
@@ -224,7 +238,9 @@ def validate_observation_record(
             f"duplicate signal_id: {signal_id}"
         )
 
-    evidence_ids = get_manifest_ids(example)
+    evidence_ids = get_manifest_ids(
+        example
+    )
 
     for evidence_id in sorted(
         find_duplicates(evidence_ids)
@@ -233,10 +249,15 @@ def validate_observation_record(
             f"duplicate evidence_id: {evidence_id}"
         )
 
-    evidence_id_set = set(evidence_ids)
+    evidence_id_set = set(
+        evidence_ids
+    )
 
     for signal in signals:
-        if not isinstance(signal, dict):
+        if not isinstance(
+            signal,
+            dict,
+        ):
             continue
 
         signal_id = signal.get(
@@ -275,21 +296,41 @@ def collect_runs(
 
     collected: list[dict[str, Any]] = []
 
-    baseline = runs.get("baseline")
-    intervention = runs.get("intervention")
+    baseline = runs.get(
+        "baseline"
+    )
 
-    if isinstance(baseline, dict):
-        collected.append(baseline)
+    intervention = runs.get(
+        "intervention"
+    )
 
-    if isinstance(intervention, dict):
-        collected.append(intervention)
+    if isinstance(
+        baseline,
+        dict,
+    ):
+        collected.append(
+            baseline
+        )
+
+    if isinstance(
+        intervention,
+        dict,
+    ):
+        collected.append(
+            intervention
+        )
 
     for control in runs.get(
         "controls",
         [],
     ):
-        if isinstance(control, dict):
-            collected.append(control)
+        if isinstance(
+            control,
+            dict,
+        ):
+            collected.append(
+                control
+            )
 
     return collected
 
@@ -301,7 +342,9 @@ def collect_intervention_evidence_refs(
 
     refs: list[str] = []
 
-    for run in collect_runs(example):
+    for run in collect_runs(
+        example
+    ):
         refs.extend(
             run.get(
                 "evidence_refs",
@@ -364,9 +407,13 @@ def validate_intervention_record(
 
     errors: list[str] = []
 
+    # ------------------------------------------------------------------
     # Evidence manifest integrity
+    # ------------------------------------------------------------------
 
-    evidence_ids = get_manifest_ids(example)
+    evidence_ids = get_manifest_ids(
+        example
+    )
 
     for evidence_id in sorted(
         find_duplicates(evidence_ids)
@@ -375,7 +422,9 @@ def validate_intervention_record(
             f"duplicate evidence_id: {evidence_id}"
         )
 
-    evidence_id_set = set(evidence_ids)
+    evidence_id_set = set(
+        evidence_ids
+    )
 
     for evidence_ref in collect_intervention_evidence_refs(
         example
@@ -387,9 +436,13 @@ def validate_intervention_record(
                 "in evidence_manifest"
             )
 
+    # ------------------------------------------------------------------
     # Run ID integrity
+    # ------------------------------------------------------------------
 
-    runs = collect_runs(example)
+    runs = collect_runs(
+        example
+    )
 
     run_ids = [
         run["run_id"]
@@ -407,9 +460,13 @@ def validate_intervention_record(
             f"duplicate run_id: {run_id}"
         )
 
-    run_id_set = set(run_ids)
+    run_id_set = set(
+        run_ids
+    )
 
+    # ------------------------------------------------------------------
     # Control run references
+    # ------------------------------------------------------------------
 
     control_design = (
         example
@@ -428,7 +485,9 @@ def validate_intervention_record(
                 "to a declared run"
             )
 
+    # ------------------------------------------------------------------
     # Hypothesis and target signal consistency
+    # ------------------------------------------------------------------
 
     hypothesis_signal_refs = set(
         example
@@ -457,7 +516,9 @@ def validate_intervention_record(
             "in hypothesis.source_signal_refs"
         )
 
+    # ------------------------------------------------------------------
     # Metric consistency
+    # ------------------------------------------------------------------
 
     comparison = example.get(
         "comparison",
@@ -476,12 +537,19 @@ def validate_intervention_record(
     delta_metric_ids = {
         item.get("metric_id")
         for item in metric_deltas
-        if isinstance(item, dict)
+        if isinstance(
+            item,
+            dict,
+        )
     }
 
     if (
-        isinstance(primary_metric_id, str)
-        and primary_metric_id not in delta_metric_ids
+        isinstance(
+            primary_metric_id,
+            str,
+        )
+        and primary_metric_id
+        not in delta_metric_ids
     ):
         errors.append(
             f"primary_metric_id "
@@ -506,13 +574,19 @@ def validate_intervention_record(
 
     baseline_metrics = build_metric_map(
         baseline
-        if isinstance(baseline, dict)
+        if isinstance(
+            baseline,
+            dict,
+        )
         else {}
     )
 
     intervention_metrics = build_metric_map(
         intervention
-        if isinstance(intervention, dict)
+        if isinstance(
+            intervention,
+            dict,
+        )
         else {}
     )
 
@@ -527,12 +601,16 @@ def validate_intervention_record(
             "metric_id"
         )
 
-        baseline_measurement = baseline_metrics.get(
-            metric_id
+        baseline_measurement = (
+            baseline_metrics.get(
+                metric_id
+            )
         )
 
         intervention_measurement = (
-            intervention_metrics.get(metric_id)
+            intervention_metrics.get(
+                metric_id
+            )
         )
 
         if baseline_measurement is None:
@@ -566,8 +644,14 @@ def validate_intervention_record(
         ]
 
         if all(
-            isinstance(value, (int, float))
-            and not isinstance(value, bool)
+            isinstance(
+                value,
+                (int, float),
+            )
+            and not isinstance(
+                value,
+                bool,
+            )
             for value in numeric_values
         ):
             expected_delta = (
@@ -609,13 +693,17 @@ def validate_intervention_record(
                     f"{expected_direction!r}"
                 )
 
-        # Ensure declared comparison values match run values.
+        # Declared comparison values must match source run values.
 
         if (
             baseline_measurement is not None
             and isinstance(
                 baseline_measurement.get("value"),
                 (int, float),
+            )
+            and not isinstance(
+                baseline_measurement.get("value"),
+                bool,
             )
             and baseline_value
             != baseline_measurement.get("value")
@@ -632,6 +720,10 @@ def validate_intervention_record(
                 intervention_measurement.get("value"),
                 (int, float),
             )
+            and not isinstance(
+                intervention_measurement.get("value"),
+                bool,
+            )
             and intervention_value
             != intervention_measurement.get("value")
         ):
@@ -641,7 +733,9 @@ def validate_intervention_record(
                 "measurement"
             )
 
+    # ------------------------------------------------------------------
     # Replication arithmetic
+    # ------------------------------------------------------------------
 
     replication = comparison.get(
         "replication_summary",
@@ -661,10 +755,22 @@ def validate_intervention_record(
     )
 
     if (
-        isinstance(trial_count, int)
-        and not isinstance(trial_count, bool)
-        and isinstance(effect_count, int)
-        and not isinstance(effect_count, bool)
+        isinstance(
+            trial_count,
+            int,
+        )
+        and not isinstance(
+            trial_count,
+            bool,
+        )
+        and isinstance(
+            effect_count,
+            int,
+        )
+        and not isinstance(
+            effect_count,
+            bool,
+        )
     ):
         if effect_count > trial_count:
             errors.append(
@@ -678,7 +784,10 @@ def validate_intervention_record(
                 success_rate,
                 (int, float),
             )
-            and not isinstance(success_rate, bool)
+            and not isinstance(
+                success_rate,
+                bool,
+            )
         ):
             expected_rate = (
                 effect_count
@@ -698,7 +807,9 @@ def validate_intervention_record(
                     f"({expected_rate})"
                 )
 
-    # Matched-baseline semantic consistency
+    # ------------------------------------------------------------------
+    # Matched baseline consistency
+    # ------------------------------------------------------------------
 
     if (
         control_design.get("control_type")
@@ -706,20 +817,27 @@ def validate_intervention_record(
     ):
         baseline_input = (
             baseline.get("input_ref")
-            if isinstance(baseline, dict)
+            if isinstance(
+                baseline,
+                dict,
+            )
             else None
         )
 
         intervention_input = (
             intervention.get("input_ref")
-            if isinstance(intervention, dict)
+            if isinstance(
+                intervention,
+                dict,
+            )
             else None
         )
 
         if (
             baseline_input
             and intervention_input
-            and baseline_input != intervention_input
+            and baseline_input
+            != intervention_input
         ):
             errors.append(
                 "matched_baseline design requires "
@@ -764,9 +882,13 @@ def validate_method_model_binding(
         )
 
     except RuntimeError as exc:
-        return [str(exc)]
+        return [
+            str(exc)
+        ]
 
+    # ------------------------------------------------------------------
     # Record reference consistency
+    # ------------------------------------------------------------------
 
     subject_refs = binding.get(
         "subject_refs",
@@ -806,7 +928,9 @@ def validate_method_model_binding(
             "v0.3 subject_refs.observation_ref"
         )
 
+    # ------------------------------------------------------------------
     # Model identity consistency
+    # ------------------------------------------------------------------
 
     binding_model = binding.get(
         "model_binding",
@@ -835,11 +959,15 @@ def validate_method_model_binding(
         )
 
         observation_value = (
-            observation_model.get(field)
+            observation_model.get(
+                field
+            )
         )
 
         intervention_value = (
-            intervention_model.get(field)
+            intervention_model.get(
+                field
+            )
         )
 
         if bound_value != observation_value:
@@ -854,7 +982,9 @@ def validate_method_model_binding(
                 "match the v0.2 intervention record"
             )
 
+    # ------------------------------------------------------------------
     # Observation method consistency
+    # ------------------------------------------------------------------
 
     observation_method_binding = (
         binding
@@ -875,11 +1005,15 @@ def validate_method_model_binding(
 
     for field in observation_method_fields:
         bound_value = (
-            observation_method_binding.get(field)
+            observation_method_binding.get(
+                field
+            )
         )
 
         source_value = (
-            source_observation_method.get(field)
+            source_observation_method.get(
+                field
+            )
         )
 
         if bound_value != source_value:
@@ -888,7 +1022,9 @@ def validate_method_model_binding(
                 "does not match the v0.1 record"
             )
 
+    # ------------------------------------------------------------------
     # Intervention method consistency
+    # ------------------------------------------------------------------
 
     intervention_method_binding = (
         binding
@@ -914,7 +1050,9 @@ def validate_method_model_binding(
             "match the v0.2 operation_ref"
         )
 
+    # ------------------------------------------------------------------
     # Experiment scope consistency
+    # ------------------------------------------------------------------
 
     experiment_binding = binding.get(
         "experiment_binding",
@@ -941,13 +1079,19 @@ def validate_method_model_binding(
             [],
         )
 
-        if set(bound_values) != set(target_values):
+        if set(
+            bound_values
+        ) != set(
+            target_values
+        ):
             errors.append(
                 f"experiment_binding.{field} does not "
                 "match the v0.2 intervention target"
             )
 
+    # ------------------------------------------------------------------
     # Runtime consistency
+    # ------------------------------------------------------------------
 
     execution_environment = binding.get(
         "execution_environment",
@@ -959,20 +1103,25 @@ def validate_method_model_binding(
     )
 
     intervention_runtime_ref = (
-        intervention_model.get("runtime_ref")
+        intervention_model.get(
+            "runtime_ref"
+        )
     )
 
     if (
         runtime_id
         and intervention_runtime_ref
-        and runtime_id != intervention_runtime_ref
+        and runtime_id
+        != intervention_runtime_ref
     ):
         errors.append(
             "execution_environment.runtime_id does "
             "not match the v0.2 runtime_ref"
         )
 
+    # ------------------------------------------------------------------
     # Reproducibility consistency
+    # ------------------------------------------------------------------
 
     reproducibility = binding.get(
         "reproducibility",
@@ -980,7 +1129,9 @@ def validate_method_model_binding(
     )
 
     reproducibility_status = (
-        reproducibility.get("status")
+        reproducibility.get(
+            "status"
+        )
     )
 
     missing_bindings = reproducibility.get(
@@ -1015,6 +1166,502 @@ def validate_method_model_binding(
 
 
 # ---------------------------------------------------------------------------
+# v0.4 — Verification Challenge and Reproduction Record
+# ---------------------------------------------------------------------------
+
+
+def validate_verification_challenge(
+    record: dict[str, Any],
+) -> list[str]:
+    """Run cross-record and semantic checks for the v0.4 record."""
+
+    errors: list[str] = []
+
+    observation_path = (
+        ROOT
+        / "examples"
+        / "latent-state-observation-record.example.yaml"
+    )
+
+    intervention_path = (
+        ROOT
+        / "examples"
+        / "causal-intervention-evidence.example.yaml"
+    )
+
+    binding_path = (
+        ROOT
+        / "examples"
+        / "method-model-binding-record.example.yaml"
+    )
+
+    try:
+        observation = load_yaml(
+            observation_path
+        )
+
+        intervention = load_yaml(
+            intervention_path
+        )
+
+        binding = load_yaml(
+            binding_path
+        )
+
+    except RuntimeError as exc:
+        return [
+            str(exc)
+        ]
+
+    # ------------------------------------------------------------------
+    # Subject reference integrity
+    # ------------------------------------------------------------------
+
+    subject_refs = record.get(
+        "subject_refs",
+        {},
+    )
+
+    if (
+        subject_refs.get(
+            "observation_ref"
+        )
+        != observation.get(
+            "observation_id"
+        )
+    ):
+        errors.append(
+            "subject_refs.observation_ref does not "
+            "match the v0.1 observation_id"
+        )
+
+    if (
+        subject_refs.get(
+            "intervention_evidence_ref"
+        )
+        != intervention.get(
+            "intervention_evidence_id"
+        )
+    ):
+        errors.append(
+            "subject_refs.intervention_evidence_ref "
+            "does not match the v0.2 record"
+        )
+
+    if (
+        subject_refs.get(
+            "binding_ref"
+        )
+        != binding.get(
+            "binding_id"
+        )
+    ):
+        errors.append(
+            "subject_refs.binding_ref does not "
+            "match the v0.3 binding_id"
+        )
+
+    target_claim_ref = subject_refs.get(
+        "target_claim_ref"
+    )
+
+    hypothesis_id = (
+        intervention
+        .get("hypothesis", {})
+        .get("hypothesis_id")
+    )
+
+    if (
+        target_claim_ref is not None
+        and target_claim_ref
+        != hypothesis_id
+    ):
+        errors.append(
+            "subject_refs.target_claim_ref does not "
+            "match the v0.2 hypothesis_id"
+        )
+
+    # ------------------------------------------------------------------
+    # Lifecycle chain integrity
+    # ------------------------------------------------------------------
+
+    binding_subject_refs = binding.get(
+        "subject_refs",
+        {},
+    )
+
+    if (
+        binding_subject_refs.get(
+            "observation_ref"
+        )
+        != subject_refs.get(
+            "observation_ref"
+        )
+    ):
+        errors.append(
+            "v0.3 binding observation_ref does not "
+            "match the v0.4 subject chain"
+        )
+
+    if (
+        binding_subject_refs.get(
+            "intervention_evidence_ref"
+        )
+        != subject_refs.get(
+            "intervention_evidence_ref"
+        )
+    ):
+        errors.append(
+            "v0.3 intervention reference does not "
+            "match the v0.4 subject chain"
+        )
+
+    # ------------------------------------------------------------------
+    # Attempt ID integrity
+    # ------------------------------------------------------------------
+
+    attempts = record.get(
+        "reproduction_attempts",
+        [],
+    )
+
+    attempt_ids = [
+        attempt["attempt_id"]
+        for attempt in attempts
+        if isinstance(
+            attempt,
+            dict,
+        )
+        and isinstance(
+            attempt.get(
+                "attempt_id"
+            ),
+            str,
+        )
+    ]
+
+    for attempt_id in sorted(
+        find_duplicates(
+            attempt_ids
+        )
+    ):
+        errors.append(
+            f"duplicate attempt_id: {attempt_id}"
+        )
+
+    # ------------------------------------------------------------------
+    # Evidence manifest integrity
+    # ------------------------------------------------------------------
+
+    evidence_ids = get_manifest_ids(
+        record
+    )
+
+    for evidence_id in sorted(
+        find_duplicates(
+            evidence_ids
+        )
+    ):
+        errors.append(
+            f"duplicate evidence_id: {evidence_id}"
+        )
+
+    evidence_id_set = set(
+        evidence_ids
+    )
+
+    evidence_refs: list[str] = []
+
+    for attempt in attempts:
+        if not isinstance(
+            attempt,
+            dict,
+        ):
+            continue
+
+        evidence_refs.extend(
+            attempt.get(
+                "evidence_refs",
+                [],
+            )
+        )
+
+    evidence_refs.extend(
+        record
+        .get("comparison", {})
+        .get("evidence_refs", [])
+    )
+
+    for evidence_ref in evidence_refs:
+        if evidence_ref not in evidence_id_set:
+            errors.append(
+                f"evidence reference "
+                f"{evidence_ref!r} not found "
+                "in evidence_manifest"
+            )
+
+    # ------------------------------------------------------------------
+    # Reproduction metric arithmetic
+    # ------------------------------------------------------------------
+
+    for attempt in attempts:
+        if not isinstance(
+            attempt,
+            dict,
+        ):
+            continue
+
+        attempt_id = attempt.get(
+            "attempt_id",
+            "<unknown-attempt>",
+        )
+
+        metric = attempt.get(
+            "primary_metric",
+            {},
+        )
+
+        original_value = metric.get(
+            "original_value"
+        )
+
+        reproduced_value = metric.get(
+            "reproduced_value"
+        )
+
+        declared_delta = metric.get(
+            "delta_from_original"
+        )
+
+        tolerance = metric.get(
+            "tolerance"
+        )
+
+        within_tolerance = metric.get(
+            "within_tolerance"
+        )
+
+        numeric_values = [
+            original_value,
+            reproduced_value,
+            declared_delta,
+            tolerance,
+        ]
+
+        if all(
+            isinstance(
+                value,
+                (int, float),
+            )
+            and not isinstance(
+                value,
+                bool,
+            )
+            for value in numeric_values
+        ):
+            expected_delta = (
+                reproduced_value
+                - original_value
+            )
+
+            if not math.isclose(
+                declared_delta,
+                expected_delta,
+                rel_tol=1e-9,
+                abs_tol=1e-9,
+            ):
+                errors.append(
+                    f"{attempt_id}: "
+                    "delta_from_original does not match "
+                    "reproduced_value - original_value"
+                )
+
+            expected_within_tolerance = (
+                abs(expected_delta)
+                <= tolerance
+            )
+
+            if (
+                within_tolerance
+                != expected_within_tolerance
+            ):
+                errors.append(
+                    f"{attempt_id}: within_tolerance "
+                    "does not match the declared "
+                    "delta and tolerance"
+                )
+
+    # ------------------------------------------------------------------
+    # Completed attempt integrity
+    # ------------------------------------------------------------------
+
+    for attempt in attempts:
+        if not isinstance(
+            attempt,
+            dict,
+        ):
+            continue
+
+        attempt_id = attempt.get(
+            "attempt_id",
+            "<unknown-attempt>",
+        )
+
+        if attempt.get(
+            "status"
+        ) == "completed":
+            if attempt.get(
+                "output_ref"
+            ) is None:
+                errors.append(
+                    f"{attempt_id}: "
+                    "completed attempt requires "
+                    "output_ref"
+                )
+
+            if (
+                attempt.get(
+                    "outcome"
+                )
+                == "not_evaluated"
+            ):
+                errors.append(
+                    f"{attempt_id}: "
+                    "completed attempt cannot have "
+                    "outcome not_evaluated"
+                )
+
+    # ------------------------------------------------------------------
+    # Exact replay deviation boundary
+    # ------------------------------------------------------------------
+
+    reproduction_plan = record.get(
+        "reproduction_plan",
+        {},
+    )
+
+    if (
+        reproduction_plan.get(
+            "reproduction_type"
+        )
+        == "exact_replay"
+    ):
+        for deviation in reproduction_plan.get(
+            "deviations",
+            [],
+        ):
+            if (
+                isinstance(
+                    deviation,
+                    dict,
+                )
+                and deviation.get(
+                    "deviation_type"
+                )
+                != "none"
+            ):
+                errors.append(
+                    "exact_replay cannot declare "
+                    "non-none deviations"
+                )
+
+    # ------------------------------------------------------------------
+    # Resolution consistency
+    # ------------------------------------------------------------------
+
+    resolution = record.get(
+        "resolution",
+        {},
+    )
+
+    status = resolution.get(
+        "status"
+    )
+
+    disposition = resolution.get(
+        "disposition"
+    )
+
+    if (
+        status == "open"
+        and disposition
+        not in {
+            "pending",
+            "no_resolution",
+        }
+    ):
+        errors.append(
+            "open resolution must use pending "
+            "or no_resolution disposition"
+        )
+
+    if (
+        status == "resolved"
+        and disposition
+        in {
+            "pending",
+            "no_resolution",
+        }
+    ):
+        errors.append(
+            "resolved status requires a final "
+            "disposition"
+        )
+
+    if (
+        status == "unresolved_dispute"
+        and disposition
+        not in {
+            "no_resolution",
+            "pending",
+        }
+    ):
+        errors.append(
+            "unresolved_dispute status must use "
+            "no_resolution or pending disposition"
+        )
+
+    # ------------------------------------------------------------------
+    # Outcome consistency
+    # ------------------------------------------------------------------
+
+    comparison = record.get(
+        "comparison",
+        {},
+    )
+
+    overall_outcome = comparison.get(
+        "overall_outcome"
+    )
+
+    completed_attempts = [
+        attempt
+        for attempt in attempts
+        if isinstance(
+            attempt,
+            dict,
+        )
+        and attempt.get(
+            "status"
+        )
+        == "completed"
+    ]
+
+    if (
+        overall_outcome
+        != "inconclusive"
+        and not completed_attempts
+    ):
+        errors.append(
+            "non-inconclusive overall_outcome "
+            "requires at least one completed "
+            "reproduction attempt"
+        )
+
+    return errors
+
+
+# ---------------------------------------------------------------------------
 # Record dispatcher
 # ---------------------------------------------------------------------------
 
@@ -1028,8 +1675,13 @@ def validate_record(
         f"[validate] {record['name']}"
     )
 
-    schema_path = record["schema"]
-    example_path = record["example"]
+    schema_path = record[
+        "schema"
+    ]
+
+    example_path = record[
+        "example"
+    ]
 
     print(
         "  schema : "
@@ -1087,6 +1739,13 @@ def validate_record(
     elif validator_name == "binding":
         errors.extend(
             validate_method_model_binding(
+                example
+            )
+        )
+
+    elif validator_name == "challenge":
+        errors.extend(
+            validate_verification_challenge(
                 example
             )
         )
@@ -1158,4 +1817,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(
+        main()
+    )
