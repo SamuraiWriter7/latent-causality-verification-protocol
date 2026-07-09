@@ -1,0 +1,666 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Causal Intervention Evidence Record",
+  "description": "A method-bound record of latent-state intervention, baseline comparison, observed effect differences, and bounded causal assessment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_status",
+    "intervention_evidence_id",
+    "created_at",
+    "observation_ref",
+    "model_context",
+    "hypothesis",
+    "intervention_design",
+    "runs",
+    "comparison",
+    "causal_assessment",
+    "evidence_manifest",
+    "assertions",
+    "review"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.2"
+    },
+    "record_type": {
+      "type": "string",
+      "const": "causal_intervention_evidence"
+    },
+    "record_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reviewed",
+        "validated",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "intervention_evidence_id": {
+      "type": "string",
+      "pattern": "^cie-[A-Za-z0-9._:-]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observation_ref": {
+      "type": "string",
+      "pattern": "^lso-[A-Za-z0-9._:-]+$"
+    },
+    "model_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "inference_family_ref"
+      ],
+      "properties": {
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checkpoint_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inference_family_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "source_signal_refs",
+        "target_claim",
+        "expected_effect",
+        "falsification_condition"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "string",
+          "pattern": "^hyp-[A-Za-z0-9._:-]+$"
+        },
+        "source_signal_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^signal-[A-Za-z0-9._:-]+$"
+          }
+        },
+        "target_claim": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_effect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "falsification_condition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "intervention_design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intervention_type",
+        "target",
+        "operation",
+        "control_design"
+      ],
+      "properties": {
+        "intervention_type": {
+          "type": "string",
+          "enum": [
+            "ablation",
+            "suppression",
+            "activation",
+            "injection",
+            "swap",
+            "replacement",
+            "scaling",
+            "patching",
+            "other"
+          ]
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "signal_refs",
+            "layer_refs",
+            "token_refs",
+            "component_refs"
+          ],
+          "properties": {
+            "signal_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^signal-[A-Za-z0-9._:-]+$"
+              }
+            },
+            "layer_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              }
+            },
+            "token_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ]
+              }
+            },
+            "component_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "operation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_ref"
+          ],
+          "properties": {
+            "operation_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "target_label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "magnitude": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "clamp_policy": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "duration_scope": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seed": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "control_design": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "control_type",
+            "control_run_refs"
+          ],
+          "properties": {
+            "control_type": {
+              "type": "string",
+              "enum": [
+                "matched_baseline",
+                "random_direction",
+                "sham",
+                "alternate_target",
+                "multiple",
+                "none"
+              ]
+            },
+            "control_run_refs": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^run-[A-Za-z0-9._:-]+$"
+              }
+            },
+            "design_note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "intervention",
+        "controls"
+      ],
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/run"
+        },
+        "intervention": {
+          "$ref": "#/$defs/run"
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/run"
+          }
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_metric_id",
+        "metric_deltas",
+        "qualitative_changes",
+        "replication_summary",
+        "evidence_refs"
+      ],
+      "properties": {
+        "primary_metric_id": {
+          "type": "string",
+          "pattern": "^metric-[A-Za-z0-9._:-]+$"
+        },
+        "metric_deltas": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/metric_delta"
+          }
+        },
+        "qualitative_changes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "replication_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trial_count",
+            "effect_count",
+            "success_rate"
+          ],
+          "properties": {
+            "trial_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "effect_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "success_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "causal_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "confidence",
+        "scope_statement",
+        "rationale",
+        "alternative_explanations",
+        "evidence_refs"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partially_supported",
+            "inconclusive",
+            "contradicted"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scope_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alternative_explanations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidence_manifest": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "evidence_type"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_type": {
+            "type": "string",
+            "enum": [
+              "run_output",
+              "metric_result",
+              "activation_summary",
+              "intervention_log",
+              "statistical_result",
+              "visualization",
+              "external_artifact",
+              "other"
+            ]
+          },
+          "uri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "assertions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intervention_performed",
+        "baseline_comparison_performed",
+        "causal_effect_assessed",
+        "universal_causal_claim_made",
+        "mechanism_exhaustively_identified"
+      ],
+      "properties": {
+        "intervention_performed": {
+          "type": "boolean",
+          "const": true
+        },
+        "baseline_comparison_performed": {
+          "type": "boolean",
+          "const": true
+        },
+        "causal_effect_assessed": {
+          "type": "boolean",
+          "const": true
+        },
+        "universal_causal_claim_made": {
+          "type": "boolean",
+          "const": false
+        },
+        "mechanism_exhaustively_identified": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_reviewed",
+            "pending",
+            "completed",
+            "disputed"
+          ]
+        },
+        "reviewer_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "pattern": "^metric-[A-Za-z0-9._:-]+$"
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "input_ref",
+        "output_ref",
+        "outcome_measurements",
+        "evidence_refs"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "pattern": "^run-[A-Za-z0-9._:-]+$"
+        },
+        "input_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_measurements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "metric_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "baseline_value",
+        "intervention_value",
+        "delta",
+        "direction",
+        "unit"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "pattern": "^metric-[A-Za-z0-9._:-]+$"
+        },
+        "baseline_value": {
+          "type": "number"
+        },
+        "intervention_value": {
+          "type": "number"
+        },
+        "delta": {
+          "type": "number"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "increase",
+            "decrease",
+            "no_change"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
