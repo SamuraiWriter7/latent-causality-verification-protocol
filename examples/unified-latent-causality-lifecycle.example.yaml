@@ -1,0 +1,243 @@
+schema_version: "0.5"
+
+record_type: unified_latent_causality_lifecycle
+
+record_status: active
+
+lifecycle_id: ulcl-example-001
+
+created_at: "2026-07-09T01:50:00Z"
+
+updated_at: "2026-07-09T01:55:00Z"
+
+record_refs:
+  observation_ref: lso-example-001
+  intervention_evidence_ref: cie-example-001
+  binding_ref: mmb-example-001
+  challenge_ref: vcr-example-001
+
+lifecycle_state:
+  observation_status: recorded
+
+  intervention_status: partially_supported
+
+  binding_status: complete
+
+  challenge_status: open
+
+  reproduction_status: partially_reproduced
+
+  resolution_status: pending
+
+  overall_status: under_challenge
+
+claim_summary:
+  claim_ref: hyp-plan-a-001
+
+  claim_text: >
+    The observed candidate_plan_a representation contributes to the
+    downstream plan-selection outcome within the declared intervention scope.
+
+  causal_scope: >
+    The claim is limited to the declared model version, checkpoint,
+    task family, observation method, intervention method, layer range,
+    token scope, component scope, and metric procedure.
+
+  support_status: partially_supported
+
+  confidence: 0.78
+
+  scope_limitations:
+    - The result has not been established across model families.
+    - Magnitude robustness remains unresolved under threshold variation.
+    - The tested intervention may affect correlated latent representations.
+    - External trace binding does not establish historical origin ownership.
+
+evidence_chain:
+  - stage: observation
+    record_ref: lso-example-001
+    status: recorded
+
+    evidence_refs:
+      - evidence-readout-001
+      - evidence-readout-002
+      - evidence-statistics-001
+
+    summary: >
+      Candidate latent signals were observed within the declared
+      layer, token, and component scope.
+
+  - stage: intervention
+    record_ref: cie-example-001
+    status: partially_supported
+
+    evidence_refs:
+      - evidence-intervention-log-001
+      - evidence-intervention-output-001
+      - evidence-intervention-metric-001
+
+    summary: >
+      A targeted latent-state intervention was performed and a
+      downstream metric change was observed.
+
+  - stage: comparison
+    record_ref: cie-example-001
+    status: partially_supported
+
+    evidence_refs:
+      - evidence-comparison-001
+      - evidence-replication-statistics-001
+
+    summary: >
+      Baseline and intervention results showed a directional effect
+      with bounded replication support.
+
+  - stage: binding
+    record_ref: mmb-example-001
+    status: bound
+
+    evidence_refs: []
+
+    summary: >
+      The claim is bound to declared model, checkpoint, tokenizer,
+      methods, configurations, environment, experiment scope, and metrics.
+
+  - stage: challenge
+    record_ref: vcr-example-001
+    status: challenged
+
+    evidence_refs:
+      - evidence-comparison-001
+
+    summary: >
+      An independent challenge questioned threshold and magnitude robustness.
+
+  - stage: reproduction
+    record_ref: vcr-example-001
+    status: partially_reproduced
+
+    evidence_refs:
+      - evidence-reproduction-output-001
+      - evidence-reproduction-metric-001
+      - evidence-reproduction-output-002
+      - evidence-reproduction-metric-002
+
+    summary: >
+      Directional consistency was observed, while effect magnitude
+      consistency remained mixed.
+
+  - stage: resolution
+    record_ref: vcr-example-001
+    status: unresolved
+
+    evidence_refs:
+      - evidence-comparison-001
+
+    summary: >
+      The challenge remains open because magnitude robustness has
+      not yet been resolved.
+
+  - stage: external_trace
+    record_ref: trace-example-origin-001
+    status: linked
+
+    evidence_refs: []
+
+    summary: >
+      The lifecycle is linked to external trace records for broader
+      provenance and audit context.
+
+external_trace_binding:
+  binding_status: bound
+
+  trace_protocol_ref: trace-relay-protocol-v1
+
+  trace_refs:
+    - trace-example-origin-001
+    - trace-example-transformation-001
+
+  relationships:
+    - trace_ref: trace-example-origin-001
+      relation_type: contextualizes
+
+      scope: >
+        Provides the external inquiry and research context that led
+        to the latent-state investigation.
+
+    - trace_ref: trace-example-transformation-001
+      relation_type: references
+
+      scope: >
+        Connects the internal causality lifecycle to a broader
+        transformation and audit chain.
+
+  binding_note: >
+    External trace binding provides contextual and provenance references.
+    It does not establish ownership of internal representations,
+    contribution percentages, or royalty entitlement.
+
+open_issues:
+  - issue_id: issue-threshold-001
+
+    category: threshold
+
+    severity: medium
+
+    status: open
+
+    summary: >
+      Effect magnitude stability under adjacent observation thresholds
+      remains unresolved.
+
+    related_refs:
+      - vcr-example-001
+      - cie-example-001
+
+  - issue_id: issue-cross-model-001
+
+    category: model
+
+    severity: medium
+
+    status: deferred
+
+    summary: >
+      Cross-model portability has not been evaluated.
+
+    related_refs:
+      - mmb-example-001
+
+closure:
+  lifecycle_complete: false
+
+  closure_reason: null
+
+  closed_at: null
+
+  superseding_lifecycle_ref: null
+
+assertions:
+  record_chain_verified: true
+
+  uncertainty_preserved: true
+
+  disputes_preserved: true
+
+  raw_internal_state_required: false
+
+  lifecycle_record_replaces_source_evidence: false
+
+  external_trace_implies_origin_ownership: false
+
+  royalty_entitlement_inferred: false
+
+  universal_causal_claim_made: false
+
+review:
+  status: pending
+
+  reviewer_ref: null
+
+  review_note: >
+    Awaiting resolution of threshold sensitivity and magnitude
+    robustness questions.
