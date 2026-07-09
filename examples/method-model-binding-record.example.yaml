@@ -1,0 +1,155 @@
+schema_version: "0.3"
+
+record_type: method_model_binding
+
+record_status: draft
+
+binding_id: mmb-example-001
+
+created_at: "2026-07-09T01:20:00Z"
+
+subject_refs:
+  observation_ref: lso-example-001
+  intervention_evidence_ref: cie-example-001
+
+model_binding:
+  provider: example-research-lab
+  model_family: example-model-family
+  model_id: example-model-alpha
+  model_version: "1.0"
+
+  checkpoint_ref: checkpoint-example-001
+  checkpoint_digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+  tokenizer_ref: tokenizer-example-v1
+  tokenizer_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+  architecture_ref: architectures/example-transformer-v1.yaml
+
+  access_mode: internal_activations
+
+method_bindings:
+  observation_method:
+    method_id: example_latent_reader
+    name: example_latent_reader
+    version: "0.3"
+    method_family: representation_readout
+
+    code_ref: src/example_latent_reader.py
+    code_digest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+
+    configuration_ref: config/latent-reader-default.yaml
+    configuration_digest: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+
+    parameter_snapshot_ref: snapshots/latent-reader-parameters-001.json
+
+    threshold_policy:
+      policy_ref: policies/signal-threshold-v1.yaml
+      policy_digest: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+
+    deterministic: false
+
+  intervention_method:
+    method_id: operations/plan-a-to-plan-b-swap-v1
+    name: matched_projection_swap
+    version: "1.0"
+    method_family: representation_swap
+
+    code_ref: src/interventions/matched_projection_swap.py
+    code_digest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+
+    configuration_ref: config/plan-swap-v1.yaml
+    configuration_digest: "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+
+    parameter_snapshot_ref: snapshots/plan-swap-parameters-001.json
+
+    threshold_policy: null
+
+    deterministic: true
+
+execution_environment:
+  runtime_id: runtime-session-043
+
+  framework: example-ml-framework
+  framework_version: "2.1.0"
+
+  precision: bf16
+
+  hardware_class: example-accelerator-class
+
+  environment_ref: environments/research-runtime-043.lock
+  environment_digest: "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+
+  container_ref: containers/latent-causality-v0.3
+
+  container_digest: "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+
+  random_seed_policy:
+    policy_type: declared_series
+
+    seed_refs:
+      - 42
+      - 101
+      - 202
+      - 303
+
+experiment_binding:
+  task_family_ref: task-families/plan-selection-v1.yaml
+
+  input_set_ref: datasets/plan-selection-example-v1.jsonl
+  input_set_digest: "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+
+  prompt_template_ref: prompts/plan-selection-template-v1.txt
+  prompt_template_digest: "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+
+  layer_indexing:
+    convention: absolute_layer_index
+    mapping_ref: null
+
+  layer_refs:
+    - 18
+    - 19
+    - 20
+
+  token_selection_policy_ref: policies/prompt-end-token-v1.yaml
+
+  component_refs:
+    - residual_stream
+
+  metric_spec_ref: metrics/plan-b-probability-v1.yaml
+  metric_spec_digest: "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+
+reproducibility:
+  status: complete
+
+  replay_requirements:
+    - Access to the declared checkpoint and tokenizer artifacts.
+    - Access to internal activations at the declared layer and component scope.
+    - Access to the bound observation and intervention method implementations.
+    - Use of the declared configuration snapshots.
+    - Use of the declared input set and metric specification.
+    - Use of the declared seed policy.
+
+  missing_bindings: []
+
+  notes: >
+    All artifacts required by the protocol record are identified by stable
+    references and integrity digests. Reproduction still depends on obtaining
+    authorized access to the declared model artifacts and internal activations.
+
+assertions:
+  model_identity_bound: true
+  method_identity_bound: true
+  configuration_bound: true
+  environment_bound: true
+
+  universal_portability_claim_made: false
+  cross_model_equivalence_claim_made: false
+
+review:
+  status: pending
+  reviewer_ref: null
+
+  review_note: >
+    Awaiting independent review of artifact availability, digest integrity,
+    and replay completeness.
