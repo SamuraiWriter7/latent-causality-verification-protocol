@@ -1,0 +1,207 @@
+schema_version: "0.2"
+
+record_type: causal_intervention_evidence
+
+record_status: draft
+
+intervention_evidence_id: cie-example-001
+
+created_at: "2026-07-09T01:00:00Z"
+
+observation_ref: lso-example-001
+
+model_context:
+  provider: example-research-lab
+  model_id: example-model-alpha
+  model_version: "1.0"
+  checkpoint_ref: checkpoint-example-001
+  runtime_ref: runtime-session-043
+  inference_family_ref: inference-family-example-20260709-001
+
+hypothesis:
+  hypothesis_id: hyp-plan-a-001
+
+  source_signal_refs:
+    - signal-plan-a
+
+  target_claim: >
+    The observed candidate_plan_a representation contributes to the
+    downstream plan-selection outcome within the declared intervention scope.
+
+  expected_effect: >
+    Replacing candidate_plan_a with candidate_plan_b will increase the
+    probability assigned to the plan_b outcome.
+
+  falsification_condition: >
+    The intervention produces no reproducible increase in the plan_b
+    outcome metric relative to the matched baseline.
+
+intervention_design:
+  intervention_type: swap
+
+  target:
+    signal_refs:
+      - signal-plan-a
+
+    layer_refs:
+      - 18
+      - 19
+      - 20
+
+    token_refs:
+      - prompt_end
+
+    component_refs:
+      - residual_stream
+
+  operation:
+    operation_ref: operations/plan-a-to-plan-b-swap-v1
+    source_label: candidate_plan_a
+    target_label: candidate_plan_b
+    magnitude: 1.0
+    clamp_policy: matched_projection_swap
+    duration_scope: prompt_end_across_selected_layers
+    seed: 42
+
+  control_design:
+    control_type: matched_baseline
+
+    control_run_refs:
+      - run-baseline-001
+
+    design_note: >
+      The intervention run uses the same input and model checkpoint as
+      the baseline run; only the declared latent-state operation differs.
+
+runs:
+  baseline:
+    run_id: run-baseline-001
+    input_ref: inputs/task-001.json
+    output_ref: outputs/baseline-001.json
+
+    outcome_measurements:
+      - metric_id: metric-plan-b-probability
+        value: 0.18
+        unit: probability
+
+    evidence_refs:
+      - evidence-baseline-output-001
+      - evidence-baseline-metric-001
+
+  intervention:
+    run_id: run-intervention-001
+    input_ref: inputs/task-001.json
+    output_ref: outputs/intervention-001.json
+
+    outcome_measurements:
+      - metric_id: metric-plan-b-probability
+        value: 0.73
+        unit: probability
+
+    evidence_refs:
+      - evidence-intervention-log-001
+      - evidence-intervention-output-001
+      - evidence-intervention-metric-001
+
+  controls: []
+
+comparison:
+  primary_metric_id: metric-plan-b-probability
+
+  metric_deltas:
+    - metric_id: metric-plan-b-probability
+      baseline_value: 0.18
+      intervention_value: 0.73
+      delta: 0.55
+      direction: increase
+      unit: probability
+
+  qualitative_changes:
+    - The top-ranked downstream plan changed from plan_a to plan_b.
+
+  replication_summary:
+    trial_count: 10
+    effect_count: 8
+    success_rate: 0.8
+
+  evidence_refs:
+    - evidence-comparison-001
+
+causal_assessment:
+  status: partially_supported
+  confidence: 0.78
+
+  scope_statement: >
+    The evidence supports a bounded causal contribution claim for the
+    declared model checkpoint, task family, intervention operation,
+    layer range, and measurement procedure only.
+
+  rationale: >
+    The targeted swap was followed by a substantial increase in the
+    declared plan_b outcome metric and the directional effect repeated
+    in eight of ten trials.
+
+  alternative_explanations:
+    - The operation may perturb correlated latent features in addition to the intended signal.
+    - The effect may depend on the selected layer and token scope.
+    - The metric may not capture every downstream behavioral consequence.
+
+  evidence_refs:
+    - evidence-comparison-001
+    - evidence-replication-statistics-001
+
+evidence_manifest:
+  - evidence_id: evidence-baseline-output-001
+    evidence_type: run_output
+    uri: evidence/baseline-output-001.json
+    digest: "sha256:example101"
+    description: Baseline run output artifact.
+
+  - evidence_id: evidence-baseline-metric-001
+    evidence_type: metric_result
+    uri: evidence/baseline-metric-001.json
+    digest: "sha256:example102"
+    description: Baseline metric result.
+
+  - evidence_id: evidence-intervention-log-001
+    evidence_type: intervention_log
+    uri: evidence/intervention-log-001.json
+    digest: "sha256:example103"
+    description: Intervention execution log.
+
+  - evidence_id: evidence-intervention-output-001
+    evidence_type: run_output
+    uri: evidence/intervention-output-001.json
+    digest: "sha256:example104"
+    description: Intervention run output artifact.
+
+  - evidence_id: evidence-intervention-metric-001
+    evidence_type: metric_result
+    uri: evidence/intervention-metric-001.json
+    digest: "sha256:example105"
+    description: Intervention metric result.
+
+  - evidence_id: evidence-comparison-001
+    evidence_type: statistical_result
+    uri: evidence/comparison-001.json
+    digest: "sha256:example106"
+    description: Baseline versus intervention comparison.
+
+  - evidence_id: evidence-replication-statistics-001
+    evidence_type: statistical_result
+    uri: evidence/replication-statistics-001.json
+    digest: "sha256:example107"
+    description: Replication summary for repeated intervention trials.
+
+assertions:
+  intervention_performed: true
+  baseline_comparison_performed: true
+  causal_effect_assessed: true
+  universal_causal_claim_made: false
+  mechanism_exhaustively_identified: false
+
+review:
+  status: pending
+  reviewer_ref: null
+  review_note: >
+    Awaiting independent review of intervention specificity and replication design.
