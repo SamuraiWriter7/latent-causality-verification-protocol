@@ -664,3 +664,172 @@ independently tested,
 confirmed,
 partially reproduced,
 or disputed.
+
+## v0.4 — Verification Challenge and Reproduction
+
+v0.4 introduces the Verification Challenge and Reproduction Record.
+
+The record allows a bound latent-causality claim to be:
+
+- challenged,
+- independently examined,
+- replayed,
+- partially reproduced,
+- contradicted,
+- narrowed,
+- revised,
+- left unresolved.
+
+### Core Principle
+
+> A verifiable claim must also be challengeable.
+
+A verification system should not treat its own conclusions as final merely because they are structured or machine-readable.
+
+v0.4 therefore introduces an explicit challenge lifecycle.
+
+### Lifecycle
+
+```text
+Bound Claim
+    ↓
+Challenge
+    ↓
+Grounds
+    ↓
+Requested Tests
+    ↓
+Reproduction Plan
+    ↓
+Reproduction Attempts
+    ↓
+Comparison
+    ↓
+Resolution
+Challenge Types
+
+The v0.4 record supports challenges involving:
+
+method dependency,
+threshold sensitivity,
+model binding mismatch,
+scope overreach,
+weak control design,
+replication failure,
+evidence integrity,
+metric validity,
+other declared grounds.
+Reproduction Types
+
+The protocol distinguishes:
+
+exact_replay
+scoped_replication
+method_variation
+model_variation
+adversarial_test
+other
+
+These forms of reproduction answer different questions.
+
+An exact replay asks:
+
+Can the recorded result be replayed under the same declared conditions?
+
+A scoped replication asks:
+
+Does the result remain supported under a controlled variation of scope?
+
+A method variation asks:
+
+Does the result depend on one interpretability or intervention method?
+
+A model variation asks:
+
+Does the result transfer to another explicitly identified model context?
+
+These outcomes must not be treated as equivalent.
+
+Comparison Outcomes
+
+The record may declare:
+
+confirmed
+substantially_confirmed
+partially_reproduced
+not_reproduced
+contradicted
+inconclusive
+
+An outcome must include:
+
+agreement scope,
+disagreement scope,
+uncertainties,
+evidence references.
+Resolution States
+
+A challenge may remain:
+
+open
+resolved
+unresolved_dispute
+withdrawn
+
+The protocol intentionally permits unresolved disagreement.
+
+Unresolved disagreement is not a protocol failure.
+
+It is an auditable state.
+
+Epistemic Boundary
+
+The following assertions are mandatory:
+
+assertions:
+  challenge_recorded: true
+  reproduction_attempts_recorded: true
+  comparison_scope_declared: true
+
+  original_claim_automatically_invalidated: false
+
+  universal_replication_claim_made: false
+
+A failed reproduction does not automatically invalidate the original record.
+
+A successful reproduction does not automatically establish universal portability.
+
+Relationship to Previous Versions
+
+v0.1 asks:
+
+What was observed?
+
+v0.2 asks:
+
+What changed after intervention?
+
+v0.3 asks:
+
+Under exactly what conditions was the result obtained?
+
+v0.4 asks:
+
+Can another party challenge, replay, vary, compare, and dispute that result?
+
+Next Layer
+
+v0.5 will introduce the Unified Latent Causality Lifecycle.
+
+The complete protocol path will become:
+
+Observe
+→ Interpret
+→ Intervene
+→ Compare
+→ Assess
+→ Bind
+→ Challenge
+→ Reproduce
+→ Resolve
+→ External Trace Binding
