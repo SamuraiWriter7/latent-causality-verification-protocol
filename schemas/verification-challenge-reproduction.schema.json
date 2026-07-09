@@ -1,0 +1,617 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verification Challenge and Reproduction Record",
+  "description": "Records a challenge to a bound latent-causality claim, one or more reproduction attempts, comparative outcomes, and resolution status.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_status",
+    "challenge_id",
+    "created_at",
+    "subject_refs",
+    "challenger",
+    "challenge",
+    "reproduction_plan",
+    "reproduction_attempts",
+    "comparison",
+    "resolution",
+    "evidence_manifest",
+    "assertions",
+    "review"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.4"
+    },
+    "record_type": {
+      "type": "string",
+      "const": "verification_challenge_reproduction"
+    },
+    "record_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "under_review",
+        "validated",
+        "resolved",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "challenge_id": {
+      "type": "string",
+      "pattern": "^vcr-[A-Za-z0-9._:-]+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "subject_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ref",
+        "intervention_evidence_ref",
+        "binding_ref"
+      ],
+      "properties": {
+        "observation_ref": {
+          "type": "string",
+          "pattern": "^lso-[A-Za-z0-9._:-]+$"
+        },
+        "intervention_evidence_ref": {
+          "type": "string",
+          "pattern": "^cie-[A-Za-z0-9._:-]+$"
+        },
+        "binding_ref": {
+          "type": "string",
+          "pattern": "^mmb-[A-Za-z0-9._:-]+$"
+        },
+        "target_claim_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "challenger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenger_id",
+        "challenger_type",
+        "relationship_to_original_work"
+      ],
+      "properties": {
+        "challenger_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "challenger_type": {
+          "type": "string",
+          "enum": [
+            "human",
+            "organization",
+            "automated_system",
+            "hybrid"
+          ]
+        },
+        "relationship_to_original_work": {
+          "type": "string",
+          "enum": [
+            "same_team",
+            "related_team",
+            "independent_team",
+            "independent_organization",
+            "unknown"
+          ]
+        },
+        "conflict_disclosure": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge_type",
+        "summary",
+        "grounds",
+        "requested_tests"
+      ],
+      "properties": {
+        "challenge_type": {
+          "type": "string",
+          "enum": [
+            "method_dependency",
+            "threshold_sensitivity",
+            "model_binding_mismatch",
+            "scope_overreach",
+            "control_design_weakness",
+            "replication_failure",
+            "evidence_integrity",
+            "metric_validity",
+            "other"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grounds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requested_tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "reproduction_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reproduction_type",
+        "independence_level",
+        "comparison_target",
+        "deviations",
+        "plan_ref"
+      ],
+      "properties": {
+        "reproduction_type": {
+          "type": "string",
+          "enum": [
+            "exact_replay",
+            "scoped_replication",
+            "method_variation",
+            "model_variation",
+            "adversarial_test",
+            "other"
+          ]
+        },
+        "independence_level": {
+          "type": "string",
+          "enum": [
+            "same_operator",
+            "same_team",
+            "related_team",
+            "independent_team",
+            "independent_organization"
+          ]
+        },
+        "comparison_target": {
+          "type": "string",
+          "enum": [
+            "observation",
+            "intervention_effect",
+            "causal_assessment",
+            "binding_completeness",
+            "multiple"
+          ]
+        },
+        "deviations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/deviation"
+          }
+        },
+        "plan_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reproduction_attempts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reproduction_attempt"
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_outcome",
+        "effect_direction_consistency",
+        "magnitude_consistency",
+        "agreement_scope",
+        "disagreement_scope",
+        "uncertainties",
+        "evidence_refs"
+      ],
+      "properties": {
+        "overall_outcome": {
+          "type": "string",
+          "enum": [
+            "confirmed",
+            "substantially_confirmed",
+            "partially_reproduced",
+            "not_reproduced",
+            "contradicted",
+            "inconclusive"
+          ]
+        },
+        "effect_direction_consistency": {
+          "type": "string",
+          "enum": [
+            "consistent",
+            "mixed",
+            "inconsistent",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "magnitude_consistency": {
+          "type": "string",
+          "enum": [
+            "within_declared_tolerance",
+            "outside_declared_tolerance",
+            "mixed",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "agreement_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "disagreement_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "uncertainties": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "disposition",
+        "rationale",
+        "revised_scope",
+        "superseding_record_ref"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved",
+            "unresolved_dispute",
+            "withdrawn"
+          ]
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "original_claim_upheld",
+            "original_claim_narrowed",
+            "original_claim_revised",
+            "original_claim_rejected",
+            "challenge_rejected",
+            "no_resolution"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revised_scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "superseding_record_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "evidence_manifest": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "evidence_type"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_type": {
+            "type": "string",
+            "enum": [
+              "challenge_document",
+              "reproduction_plan",
+              "run_output",
+              "metric_result",
+              "comparison_result",
+              "environment_manifest",
+              "method_artifact",
+              "review_note",
+              "external_artifact",
+              "other"
+            ]
+          },
+          "uri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "assertions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge_recorded",
+        "reproduction_attempts_recorded",
+        "comparison_scope_declared",
+        "original_claim_automatically_invalidated",
+        "universal_replication_claim_made"
+      ],
+      "properties": {
+        "challenge_recorded": {
+          "type": "boolean",
+          "const": true
+        },
+        "reproduction_attempts_recorded": {
+          "type": "boolean",
+          "const": true
+        },
+        "comparison_scope_declared": {
+          "type": "boolean",
+          "const": true
+        },
+        "original_claim_automatically_invalidated": {
+          "type": "boolean",
+          "const": false
+        },
+        "universal_replication_claim_made": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_reviewed",
+            "pending",
+            "completed",
+            "disputed"
+          ]
+        },
+        "reviewer_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "deviation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_path",
+        "deviation_type",
+        "original_value_ref",
+        "reproduction_value_ref",
+        "rationale"
+      ],
+      "properties": {
+        "field_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deviation_type": {
+          "type": "string",
+          "enum": [
+            "none",
+            "intentional",
+            "unavoidable",
+            "unknown"
+          ]
+        },
+        "original_value_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reproduction_value_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reproduction_attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "status",
+        "operator_ref",
+        "binding_snapshot_ref",
+        "input_ref",
+        "output_ref",
+        "primary_metric",
+        "outcome",
+        "evidence_refs"
+      ],
+      "properties": {
+        "attempt_id": {
+          "type": "string",
+          "pattern": "^attempt-[A-Za-z0-9._:-]+$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "running",
+            "completed",
+            "failed_execution",
+            "cancelled"
+          ]
+        },
+        "operator_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding_snapshot_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "primary_metric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "metric_id",
+            "original_value",
+            "reproduced_value",
+            "delta_from_original",
+            "tolerance",
+            "within_tolerance"
+          ],
+          "properties": {
+            "metric_id": {
+              "type": "string",
+              "pattern": "^metric-[A-Za-z0-9._:-]+$"
+            },
+            "original_value": {
+              "type": "number"
+            },
+            "reproduced_value": {
+              "type": "number"
+            },
+            "delta_from_original": {
+              "type": "number"
+            },
+            "tolerance": {
+              "type": "number",
+              "minimum": 0
+            },
+            "within_tolerance": {
+              "type": "boolean"
+            }
+          }
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "supports",
+            "partially_supports",
+            "does_not_support",
+            "contradicts",
+            "inconclusive",
+            "not_evaluated"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
