@@ -13,38 +13,69 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 
 
-RECORDS = [
+RECORDS: list[dict[str, Any]] = [
     {
         "name": "Latent State Observation Record",
-        "schema": ROOT
-        / "schemas"
-        / "latent-state-observation-record.schema.json",
-        "example": ROOT
-        / "examples"
-        / "latent-state-observation-record.example.yaml",
+        "schema": (
+            ROOT
+            / "schemas"
+            / "latent-state-observation-record.schema.json"
+        ),
+        "example": (
+            ROOT
+            / "examples"
+            / "latent-state-observation-record.example.yaml"
+        ),
         "semantic_validator": "observation",
     },
     {
         "name": "Causal Intervention Evidence Record",
-        "schema": ROOT
-        / "schemas"
-        / "causal-intervention-evidence.schema.json",
-        "example": ROOT
-        / "examples"
-        / "causal-intervention-evidence.example.yaml",
+        "schema": (
+            ROOT
+            / "schemas"
+            / "causal-intervention-evidence.schema.json"
+        ),
+        "example": (
+            ROOT
+            / "examples"
+            / "causal-intervention-evidence.example.yaml"
+        ),
         "semantic_validator": "intervention",
+    },
+    {
+        "name": "Method and Model Binding Record",
+        "schema": (
+            ROOT
+            / "schemas"
+            / "method-model-binding-record.schema.json"
+        ),
+        "example": (
+            ROOT
+            / "examples"
+            / "method-model-binding-record.example.yaml"
+        ),
+        "semantic_validator": "binding",
     },
 ]
 
 
+# ---------------------------------------------------------------------------
+# File loading
+# ---------------------------------------------------------------------------
+
+
 def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON object from disk."""
+
     try:
         with path.open("r", encoding="utf-8") as file:
             data = json.load(file)
+
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"File not found: {path}"
         ) from exc
+
     except json.JSONDecodeError as exc:
         raise RuntimeError(
             f"Invalid JSON in {path}: {exc}"
@@ -59,13 +90,17 @@ def load_json(path: Path) -> dict[str, Any]:
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
+    """Load a YAML mapping from disk."""
+
     try:
         with path.open("r", encoding="utf-8") as file:
             data = yaml.safe_load(file)
+
     except FileNotFoundError as exc:
         raise RuntimeError(
             f"File not found: {path}"
         ) from exc
+
     except yaml.YAMLError as exc:
         raise RuntimeError(
             f"Invalid YAML in {path}: {exc}"
@@ -79,23 +114,47 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
+# ---------------------------------------------------------------------------
+# Generic helpers
+# ---------------------------------------------------------------------------
+
+
+def find_duplicates(
+    values: list[str],
+) -> set[str]:
+    """Return duplicate string values."""
+
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+
+    for value in values:
+        if value in seen:
+            duplicates.add(value)
+        else:
+            seen.add(value)
+
+    return duplicates
+
+
 def validate_schema(
     schema: dict[str, Any],
     example: dict[str, Any],
 ) -> list[str]:
+    """Validate an example against JSON Schema."""
+
     validator = Draft202012Validator(
         schema,
         format_checker=Draft202012Validator.FORMAT_CHECKER,
     )
 
-    errors = sorted(
+    validation_errors = sorted(
         validator.iter_errors(example),
         key=lambda error: list(error.absolute_path),
     )
 
     messages: list[str] = []
 
-    for error in errors:
+    for error in validation_errors:
         path = ".".join(
             str(part)
             for part in error.absolute_path
@@ -110,24 +169,37 @@ def validate_schema(
     return messages
 
 
-def find_duplicates(
-    values: list[str],
-) -> set[str]:
-    seen: set[str] = set()
-    duplicates: set[str] = set()
+def get_manifest_ids(
+    example: dict[str, Any],
+) -> list[str]:
+    """Collect evidence IDs from an evidence manifest."""
 
-    for value in values:
-        if value in seen:
-            duplicates.add(value)
-        else:
-            seen.add(value)
+    manifest = example.get(
+        "evidence_manifest",
+        [],
+    )
 
-    return duplicates
+    return [
+        item["evidence_id"]
+        for item in manifest
+        if isinstance(item, dict)
+        and isinstance(
+            item.get("evidence_id"),
+            str,
+        )
+    ]
+
+
+# ---------------------------------------------------------------------------
+# v0.1 — Latent State Observation Record
+# ---------------------------------------------------------------------------
 
 
 def validate_observation_record(
     example: dict[str, Any],
 ) -> list[str]:
+    """Run semantic checks for the v0.1 observation record."""
+
     errors: list[str] = []
 
     signals = example.get(
@@ -152,16 +224,16 @@ def validate_observation_record(
             f"duplicate signal_id: {signal_id}"
         )
 
-    manifest = example.get(
-        "evidence_manifest",
-        [],
-    )
+    evidence_ids = get_manifest_ids(example)
 
-    manifest_ids = {
-        item.get("evidence_id")
-        for item in manifest
-        if isinstance(item, dict)
-    }
+    for evidence_id in sorted(
+        find_duplicates(evidence_ids)
+    ):
+        errors.append(
+            f"duplicate evidence_id: {evidence_id}"
+        )
+
+    evidence_id_set = set(evidence_ids)
 
     for signal in signals:
         if not isinstance(signal, dict):
@@ -176,7 +248,7 @@ def validate_observation_record(
             "evidence_refs",
             [],
         ):
-            if evidence_ref not in manifest_ids:
+            if evidence_ref not in evidence_id_set:
                 errors.append(
                     f"{signal_id}: evidence reference "
                     f"{evidence_ref!r} not found "
@@ -186,9 +258,16 @@ def validate_observation_record(
     return errors
 
 
+# ---------------------------------------------------------------------------
+# v0.2 — Causal Intervention Evidence Record
+# ---------------------------------------------------------------------------
+
+
 def collect_runs(
     example: dict[str, Any],
 ) -> list[dict[str, Any]]:
+    """Collect baseline, intervention, and control runs."""
+
     runs = example.get(
         "runs",
         {},
@@ -215,9 +294,11 @@ def collect_runs(
     return collected
 
 
-def collect_evidence_refs(
+def collect_intervention_evidence_refs(
     example: dict[str, Any],
 ) -> list[str]:
+    """Collect every evidence reference used by a v0.2 record."""
+
     refs: list[str] = []
 
     for run in collect_runs(example):
@@ -255,25 +336,37 @@ def collect_evidence_refs(
     return refs
 
 
-def validate_intervention_record(
-    example: dict[str, Any],
-) -> list[str]:
-    errors: list[str] = []
+def build_metric_map(
+    run: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Build a metric_id -> measurement mapping."""
 
-    manifest = example.get(
-        "evidence_manifest",
+    measurements = run.get(
+        "outcome_measurements",
         [],
     )
 
-    evidence_ids = [
-        item["evidence_id"]
-        for item in manifest
+    return {
+        item["metric_id"]: item
+        for item in measurements
         if isinstance(item, dict)
         and isinstance(
-            item.get("evidence_id"),
+            item.get("metric_id"),
             str,
         )
-    ]
+    }
+
+
+def validate_intervention_record(
+    example: dict[str, Any],
+) -> list[str]:
+    """Run semantic checks for the v0.2 intervention record."""
+
+    errors: list[str] = []
+
+    # Evidence manifest integrity
+
+    evidence_ids = get_manifest_ids(example)
 
     for evidence_id in sorted(
         find_duplicates(evidence_ids)
@@ -284,7 +377,7 @@ def validate_intervention_record(
 
     evidence_id_set = set(evidence_ids)
 
-    for evidence_ref in collect_evidence_refs(
+    for evidence_ref in collect_intervention_evidence_refs(
         example
     ):
         if evidence_ref not in evidence_id_set:
@@ -293,6 +386,8 @@ def validate_intervention_record(
                 f"{evidence_ref!r} not found "
                 "in evidence_manifest"
             )
+
+    # Run ID integrity
 
     runs = collect_runs(example)
 
@@ -314,6 +409,8 @@ def validate_intervention_record(
 
     run_id_set = set(run_ids)
 
+    # Control run references
+
     control_design = (
         example
         .get("intervention_design", {})
@@ -330,6 +427,8 @@ def validate_intervention_record(
                 f"{control_ref!r} does not resolve "
                 "to a declared run"
             )
+
+    # Hypothesis and target signal consistency
 
     hypothesis_signal_refs = set(
         example
@@ -358,6 +457,8 @@ def validate_intervention_record(
             "in hypothesis.source_signal_refs"
         )
 
+    # Metric consistency
+
     comparison = example.get(
         "comparison",
         {},
@@ -379,9 +480,8 @@ def validate_intervention_record(
     }
 
     if (
-        primary_metric_id
-        and primary_metric_id
-        not in delta_metric_ids
+        isinstance(primary_metric_id, str)
+        and primary_metric_id not in delta_metric_ids
     ):
         errors.append(
             f"primary_metric_id "
@@ -404,23 +504,17 @@ def validate_intervention_record(
         {},
     )
 
-    baseline_metrics = {
-        item.get("metric_id"): item
-        for item in baseline.get(
-            "outcome_measurements",
-            [],
-        )
-        if isinstance(item, dict)
-    }
+    baseline_metrics = build_metric_map(
+        baseline
+        if isinstance(baseline, dict)
+        else {}
+    )
 
-    intervention_metrics = {
-        item.get("metric_id"): item
-        for item in intervention.get(
-            "outcome_measurements",
-            [],
-        )
-        if isinstance(item, dict)
-    }
+    intervention_metrics = build_metric_map(
+        intervention
+        if isinstance(intervention, dict)
+        else {}
+    )
 
     for metric_delta in metric_deltas:
         if not isinstance(
@@ -433,13 +527,21 @@ def validate_intervention_record(
             "metric_id"
         )
 
-        if metric_id not in baseline_metrics:
+        baseline_measurement = baseline_metrics.get(
+            metric_id
+        )
+
+        intervention_measurement = (
+            intervention_metrics.get(metric_id)
+        )
+
+        if baseline_measurement is None:
             errors.append(
                 f"{metric_id!r} not found "
                 "in baseline measurements"
             )
 
-        if metric_id not in intervention_metrics:
+        if intervention_measurement is None:
             errors.append(
                 f"{metric_id!r} not found "
                 "in intervention measurements"
@@ -457,13 +559,16 @@ def validate_intervention_record(
             "delta"
         )
 
+        numeric_values = [
+            baseline_value,
+            intervention_value,
+            declared_delta,
+        ]
+
         if all(
             isinstance(value, (int, float))
-            for value in [
-                baseline_value,
-                intervention_value,
-                declared_delta,
-            ]
+            and not isinstance(value, bool)
+            for value in numeric_values
         ):
             expected_delta = (
                 intervention_value
@@ -479,7 +584,7 @@ def validate_intervention_record(
                 errors.append(
                     f"{metric_id}: declared delta "
                     f"{declared_delta} does not match "
-                    f"intervention - baseline "
+                    "intervention - baseline "
                     f"({expected_delta})"
                 )
 
@@ -489,8 +594,10 @@ def validate_intervention_record(
 
             if expected_delta > 0:
                 expected_direction = "increase"
+
             elif expected_delta < 0:
                 expected_direction = "decrease"
+
             else:
                 expected_direction = "no_change"
 
@@ -501,6 +608,40 @@ def validate_intervention_record(
                     f"delta direction "
                     f"{expected_direction!r}"
                 )
+
+        # Ensure declared comparison values match run values.
+
+        if (
+            baseline_measurement is not None
+            and isinstance(
+                baseline_measurement.get("value"),
+                (int, float),
+            )
+            and baseline_value
+            != baseline_measurement.get("value")
+        ):
+            errors.append(
+                f"{metric_id}: baseline_value "
+                "does not match the baseline run "
+                "measurement"
+            )
+
+        if (
+            intervention_measurement is not None
+            and isinstance(
+                intervention_measurement.get("value"),
+                (int, float),
+            )
+            and intervention_value
+            != intervention_measurement.get("value")
+        ):
+            errors.append(
+                f"{metric_id}: intervention_value "
+                "does not match the intervention run "
+                "measurement"
+            )
+
+    # Replication arithmetic
 
     replication = comparison.get(
         "replication_summary",
@@ -521,7 +662,9 @@ def validate_intervention_record(
 
     if (
         isinstance(trial_count, int)
+        and not isinstance(trial_count, bool)
         and isinstance(effect_count, int)
+        and not isinstance(effect_count, bool)
     ):
         if effect_count > trial_count:
             errors.append(
@@ -535,6 +678,7 @@ def validate_intervention_record(
                 success_rate,
                 (int, float),
             )
+            and not isinstance(success_rate, bool)
         ):
             expected_rate = (
                 effect_count
@@ -550,27 +694,32 @@ def validate_intervention_record(
                 errors.append(
                     "replication_summary.success_rate "
                     f"{success_rate} does not match "
-                    f"effect_count / trial_count "
+                    "effect_count / trial_count "
                     f"({expected_rate})"
                 )
+
+    # Matched-baseline semantic consistency
 
     if (
         control_design.get("control_type")
         == "matched_baseline"
     ):
-        baseline_input = baseline.get(
-            "input_ref"
+        baseline_input = (
+            baseline.get("input_ref")
+            if isinstance(baseline, dict)
+            else None
         )
 
-        intervention_input = intervention.get(
-            "input_ref"
+        intervention_input = (
+            intervention.get("input_ref")
+            if isinstance(intervention, dict)
+            else None
         )
 
         if (
             baseline_input
             and intervention_input
-            and baseline_input
-            != intervention_input
+            and baseline_input != intervention_input
         ):
             errors.append(
                 "matched_baseline design requires "
@@ -581,9 +730,300 @@ def validate_intervention_record(
     return errors
 
 
+# ---------------------------------------------------------------------------
+# v0.3 — Method and Model Binding Record
+# ---------------------------------------------------------------------------
+
+
+def validate_method_model_binding(
+    binding: dict[str, Any],
+) -> list[str]:
+    """Run cross-record checks for the v0.3 binding record."""
+
+    errors: list[str] = []
+
+    observation_path = (
+        ROOT
+        / "examples"
+        / "latent-state-observation-record.example.yaml"
+    )
+
+    intervention_path = (
+        ROOT
+        / "examples"
+        / "causal-intervention-evidence.example.yaml"
+    )
+
+    try:
+        observation = load_yaml(
+            observation_path
+        )
+
+        intervention = load_yaml(
+            intervention_path
+        )
+
+    except RuntimeError as exc:
+        return [str(exc)]
+
+    # Record reference consistency
+
+    subject_refs = binding.get(
+        "subject_refs",
+        {},
+    )
+
+    observation_ref = subject_refs.get(
+        "observation_ref"
+    )
+
+    intervention_ref = subject_refs.get(
+        "intervention_evidence_ref"
+    )
+
+    if observation_ref != observation.get(
+        "observation_id"
+    ):
+        errors.append(
+            "subject_refs.observation_ref does not "
+            "match the v0.1 observation_id"
+        )
+
+    if intervention_ref != intervention.get(
+        "intervention_evidence_id"
+    ):
+        errors.append(
+            "subject_refs.intervention_evidence_ref "
+            "does not match the v0.2 "
+            "intervention_evidence_id"
+        )
+
+    if intervention.get(
+        "observation_ref"
+    ) != observation_ref:
+        errors.append(
+            "v0.2 observation_ref does not match "
+            "v0.3 subject_refs.observation_ref"
+        )
+
+    # Model identity consistency
+
+    binding_model = binding.get(
+        "model_binding",
+        {},
+    )
+
+    observation_model = observation.get(
+        "model_context",
+        {},
+    )
+
+    intervention_model = intervention.get(
+        "model_context",
+        {},
+    )
+
+    model_identity_fields = [
+        "model_id",
+        "model_version",
+        "checkpoint_ref",
+    ]
+
+    for field in model_identity_fields:
+        bound_value = binding_model.get(
+            field
+        )
+
+        observation_value = (
+            observation_model.get(field)
+        )
+
+        intervention_value = (
+            intervention_model.get(field)
+        )
+
+        if bound_value != observation_value:
+            errors.append(
+                f"model_binding.{field} does not "
+                "match the v0.1 observation record"
+            )
+
+        if bound_value != intervention_value:
+            errors.append(
+                f"model_binding.{field} does not "
+                "match the v0.2 intervention record"
+            )
+
+    # Observation method consistency
+
+    observation_method_binding = (
+        binding
+        .get("method_bindings", {})
+        .get("observation_method", {})
+    )
+
+    source_observation_method = observation.get(
+        "observation_method",
+        {},
+    )
+
+    observation_method_fields = [
+        "name",
+        "version",
+        "method_family",
+    ]
+
+    for field in observation_method_fields:
+        bound_value = (
+            observation_method_binding.get(field)
+        )
+
+        source_value = (
+            source_observation_method.get(field)
+        )
+
+        if bound_value != source_value:
+            errors.append(
+                f"observation method {field!r} "
+                "does not match the v0.1 record"
+            )
+
+    # Intervention method consistency
+
+    intervention_method_binding = (
+        binding
+        .get("method_bindings", {})
+        .get("intervention_method", {})
+    )
+
+    operation_ref = (
+        intervention
+        .get("intervention_design", {})
+        .get("operation", {})
+        .get("operation_ref")
+    )
+
+    if (
+        intervention_method_binding.get(
+            "method_id"
+        )
+        != operation_ref
+    ):
+        errors.append(
+            "intervention_method.method_id does not "
+            "match the v0.2 operation_ref"
+        )
+
+    # Experiment scope consistency
+
+    experiment_binding = binding.get(
+        "experiment_binding",
+        {},
+    )
+
+    intervention_target = (
+        intervention
+        .get("intervention_design", {})
+        .get("target", {})
+    )
+
+    for field in [
+        "layer_refs",
+        "component_refs",
+    ]:
+        bound_values = experiment_binding.get(
+            field,
+            [],
+        )
+
+        target_values = intervention_target.get(
+            field,
+            [],
+        )
+
+        if set(bound_values) != set(target_values):
+            errors.append(
+                f"experiment_binding.{field} does not "
+                "match the v0.2 intervention target"
+            )
+
+    # Runtime consistency
+
+    execution_environment = binding.get(
+        "execution_environment",
+        {},
+    )
+
+    runtime_id = execution_environment.get(
+        "runtime_id"
+    )
+
+    intervention_runtime_ref = (
+        intervention_model.get("runtime_ref")
+    )
+
+    if (
+        runtime_id
+        and intervention_runtime_ref
+        and runtime_id != intervention_runtime_ref
+    ):
+        errors.append(
+            "execution_environment.runtime_id does "
+            "not match the v0.2 runtime_ref"
+        )
+
+    # Reproducibility consistency
+
+    reproducibility = binding.get(
+        "reproducibility",
+        {},
+    )
+
+    reproducibility_status = (
+        reproducibility.get("status")
+    )
+
+    missing_bindings = reproducibility.get(
+        "missing_bindings",
+        [],
+    )
+
+    replay_requirements = reproducibility.get(
+        "replay_requirements",
+        [],
+    )
+
+    if (
+        reproducibility_status == "complete"
+        and missing_bindings
+    ):
+        errors.append(
+            "reproducibility.status is complete "
+            "but missing_bindings is not empty"
+        )
+
+    if (
+        reproducibility_status == "complete"
+        and not replay_requirements
+    ):
+        errors.append(
+            "reproducibility.status is complete "
+            "but replay_requirements is empty"
+        )
+
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# Record dispatcher
+# ---------------------------------------------------------------------------
+
+
 def validate_record(
     record: dict[str, Any],
 ) -> bool:
+    """Validate one schema/example pair."""
+
     print(
         f"[validate] {record['name']}"
     )
@@ -592,20 +1032,33 @@ def validate_record(
     example_path = record["example"]
 
     print(
-        f"  schema : "
+        "  schema : "
         f"{schema_path.relative_to(ROOT)}"
     )
 
     print(
-        f"  example: "
+        "  example: "
         f"{example_path.relative_to(ROOT)}"
     )
 
     try:
-        schema = load_json(schema_path)
-        example = load_yaml(example_path)
+        schema = load_json(
+            schema_path
+        )
+
+        example = load_yaml(
+            example_path
+        )
+
     except RuntimeError as exc:
-        print(f"Error: {exc}")
+        print(
+            f"Error: {exc}"
+        )
+
+        print(
+            f"[failed] {example_path.name}"
+        )
+
         return False
 
     errors = validate_schema(
@@ -631,6 +1084,19 @@ def validate_record(
             )
         )
 
+    elif validator_name == "binding":
+        errors.extend(
+            validate_method_model_binding(
+                example
+            )
+        )
+
+    else:
+        errors.append(
+            f"unknown semantic validator: "
+            f"{validator_name!r}"
+        )
+
     if errors:
         for error in errors:
             print(
@@ -651,16 +1117,37 @@ def validate_record(
     return True
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
 def main() -> int:
+    """Validate all protocol examples."""
+
     all_valid = True
 
-    for record in RECORDS:
-        valid = validate_record(record)
+    for index, record in enumerate(
+        RECORDS
+    ):
+        if index > 0:
+            print()
+
+        valid = validate_record(
+            record
+        )
 
         if not valid:
             all_valid = False
 
+    print()
+
     if not all_valid:
+        print(
+            "[failed] one or more protocol "
+            "examples are invalid"
+        )
+
         return 1
 
     print(
